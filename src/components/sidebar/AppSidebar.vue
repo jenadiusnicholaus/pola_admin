@@ -85,11 +85,21 @@ export default defineComponent({
         return route.path.endsWith(`${section.name}`)
       }
 
-      return section.children.some(({ name }) => route.path.endsWith(`${name}`))
+      // Check if current route matches any child route name
+      return section.children.some(({ name }) => route.name === name)
     }
 
-    const setActiveExpand = () =>
-      (value.value = navigationRoutes.routes.map((route: INavigationRoute) => routeHasActiveChild(route)))
+    const setActiveExpand = () => {
+      // Keep previously expanded state and only update for routes with active children
+      const newValue = navigationRoutes.routes.map((navRoute: INavigationRoute, index) => {
+        if (routeHasActiveChild(navRoute)) {
+          return true
+        }
+        // Keep the current expanded state if it was manually expanded
+        return value.value[index] ?? false
+      })
+      value.value = newValue
+    }
 
     const sidebarWidth = computed(() => (props.mobile ? '100vw' : '280px'))
     const color = computed(() => getColor('background-secondary'))

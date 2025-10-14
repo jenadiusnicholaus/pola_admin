@@ -25,13 +25,13 @@ export default {
         icon: 'group',
       },
     },
-    {
-      name: 'projects',
-      displayName: 'menu.projects',
-      meta: {
-        icon: 'folder_shared',
-      },
-    },
+    // {
+    //   name: 'projects',
+    //   displayName: 'menu.projects',
+    //   meta: {
+    //     icon: 'folder_shared',
+    //   },
+    // },
     {
       name: 'payments',
       displayName: 'menu.payments',
@@ -53,27 +53,27 @@ export default {
         },
       ],
     },
-    {
-      name: 'auth',
-      displayName: 'menu.auth',
-      meta: {
-        icon: 'login',
-      },
-      children: [
-        {
-          name: 'login',
-          displayName: 'menu.login',
-        },
-        {
-          name: 'signup',
-          displayName: 'menu.signup',
-        },
-        {
-          name: 'recover-password',
-          displayName: 'menu.recover-password',
-        },
-      ],
-    },
+    // {
+    //   name: 'auth',
+    //   displayName: 'menu.auth',
+    //   meta: {
+    //     icon: 'login',
+    //   },
+    //   children: [
+    //     {
+    //       name: 'login',
+    //       displayName: 'menu.login',
+    //     },
+    //     {
+    //       name: 'signup',
+    //       displayName: 'menu.signup',
+    //     },
+    //     {
+    //       name: 'recover-password',
+    //       displayName: 'menu.recover-password',
+    //     },
+    //   ],
+    // },
 
     {
       name: 'faq',
@@ -82,13 +82,13 @@ export default {
         icon: 'quiz',
       },
     },
-    {
-      name: '404',
-      displayName: 'menu.404',
-      meta: {
-        icon: 'vuestic-iconset-files',
-      },
-    },
+    // {
+    //   name: '404',
+    //   displayName: 'menu.404',
+    //   meta: {
+    //     icon: 'vuestic-iconset-files',
+    //   },
+    // },
     {
       name: 'preferences',
       displayName: 'menu.preferences',
@@ -102,6 +102,34 @@ export default {
       meta: {
         icon: 'settings',
       },
+    },
+    {
+      name: 'admin-users',
+      displayName: 'menu.admin-users',
+      meta: {
+        icon: 'admin_panel_settings',
+      },
+    },
+    {
+      name: 'admin-verification',
+      displayName: 'menu.admin-verification',
+      meta: {
+        icon: 'verified_user',
+      },
+      children: [
+        {
+          name: 'verification-dashboard',
+          displayName: 'menu.verification-dashboard',
+        },
+        {
+          name: 'verification-list',
+          displayName: 'menu.verification-list',
+        },
+        {
+          name: 'document-review',
+          displayName: 'menu.document-review',
+        },
+      ],
     },
   ] as INavigationRoute[],
 }

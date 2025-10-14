@@ -11,8 +11,11 @@
             @click="isSidebarMinimized = !isSidebarMinimized"
           />
         </Transition>
-        <RouterLink to="/" aria-label="Visit home page">
-          <VuesticLogo />
+        <RouterLink to="/" aria-label="Visit home page" class="logo-link">
+          <div class="app-logo">
+            <VaIcon name="verified_user" size="2rem" color="primary" />
+            <span class="app-name">Pola Admin</span>
+          </div>
         </RouterLink>
       </div>
     </template>
@@ -26,7 +29,6 @@
 import { storeToRefs } from 'pinia'
 import { useGlobalStore } from '../../stores/global-store'
 import AppNavbarActions from './components/AppNavbarActions.vue'
-import VuesticLogo from '../VuesticLogo.vue'
 
 defineProps({
   isMobile: { type: Boolean, default: false },
@@ -40,6 +42,7 @@ const { isSidebarMinimized } = storeToRefs(GlobalStore)
 <style lang="scss" scoped>
 .va-navbar {
   z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   @media screen and (max-width: 950px) {
     .left {
@@ -65,6 +68,30 @@ const { isSidebarMinimized } = storeToRefs(GlobalStore)
   & > *:last-child {
     margin-right: 0;
   }
+}
+
+.logo-link {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--va-primary);
+  letter-spacing: -0.02em;
 }
 
 .icon-fade-enter-active,

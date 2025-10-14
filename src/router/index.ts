@@ -4,6 +4,7 @@ import AuthLayout from '../layouts/AuthLayout.vue'
 import AppLayout from '../layouts/AppLayout.vue'
 
 import RouteViewComponent from '../layouts/RouterBypass.vue'
+import { adminAuthGuard, userAuthGuard } from './guards'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -15,6 +16,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/',
     component: AppLayout,
     redirect: { name: 'dashboard' },
+    beforeEnter: userAuthGuard,
     children: [
       {
         name: 'dashboard',
@@ -35,6 +37,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'users',
         path: 'users',
         component: () => import('../pages/users/UsersPage.vue'),
+      },
+      {
+        name: 'admin-users',
+        path: 'admin-users',
+        component: () => import('../pages/users/AdminUsersPage.vue'),
+        beforeEnter: adminAuthGuard,
       },
       {
         name: 'projects',
@@ -67,6 +75,51 @@ const routes: Array<RouteRecordRaw> = [
         name: 'faq',
         path: '/faq',
         component: () => import('../pages/faq/FaqPage.vue'),
+      },
+      {
+        name: 'user',
+        path: '/user',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'user-profile',
+            path: 'profile',
+            component: () => import('../pages/user/UserProfile.vue'),
+          },
+          {
+            name: 'user-verification',
+            path: 'verification',
+            component: () => import('../pages/user/UserVerificationPage.vue'),
+          },
+        ],
+      },
+      {
+        name: 'admin-verification',
+        path: '/admin-verification',
+        component: RouteViewComponent,
+        beforeEnter: adminAuthGuard,
+        children: [
+          {
+            name: 'verification-dashboard',
+            path: 'v-dashboard',
+            component: () => import('../pages/admin/pages/verification/VerificationDashboard.vue'),
+          },
+          {
+            name: 'verification-list',
+            path: 'verifications',
+            component: () => import('../pages/admin/pages/verification/VerificationList.vue'),
+          },
+          {
+            name: 'verification-details',
+            path: 'verifications/:id',
+            component: () => import('../pages/admin/pages/verification/VerificationDetails.vue'),
+          },
+          {
+            name: 'document-review',
+            path: 'documents',
+            component: () => import('../pages/admin/pages/verification/DocumentReview.vue'),
+          },
+        ],
       },
     ],
   },

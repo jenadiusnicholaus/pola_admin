@@ -5,6 +5,7 @@
       New to Vuestic?
       <RouterLink :to="{ name: 'signup' }" class="font-semibold text-primary">Sign up</RouterLink>
     </p>
+
     <VaInput
       v-model="formData.email"
       :rules="[validators.required, validators.email]"
@@ -38,21 +39,32 @@
       </RouterLink>
     </div>
 
+    <VaAlert v-if="error" color="danger" class="mt-4">
+      {{ error }}
+    </VaAlert>
+
     <div class="flex justify-center mt-4">
-      <VaButton class="w-full" @click="submit"> Login</VaButton>
+      <VaButton type="submit" class="w-full" :loading="loading" :disabled="loading">
+        {{ loading ? 'Logging in...' : 'Login' }}
+      </VaButton>
     </div>
   </VaForm>
 </template>
 
 <script lang="ts" setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, useToast } from 'vuestic-ui'
 import { validators } from '../../services/utils'
+import { useAdminAuthStore } from '../../stores/verification-store'
 
 const { validate } = useForm('form')
 const { push } = useRouter()
 const { init } = useToast()
+const adminAuthStore = useAdminAuthStore()
+
+const loading = ref(false)
+const error = ref('')
 
 const formData = reactive({
   email: '',
@@ -60,10 +72,24 @@ const formData = reactive({
   keepLoggedIn: false,
 })
 
-const submit = () => {
-  if (validate()) {
-    init({ message: "You've successfully logged in", color: 'success' })
-    push({ name: 'dashboard' })
+const submit = async () => {
+  if (!validate()) {
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    // Admin login
+    await adminAuthStore.login(formData.email, formData.password)
+    init({ message: 'Admin login successful', color: 'success' })
+    push({ name: 'verification-dashboard' })
+  } catch (err: any) {
+    error.value = err.message || 'Login failed'
+    init({ message: error.value, color: 'danger' })
+  } finally {
+    loading.value = false
   }
 }
 </script>
