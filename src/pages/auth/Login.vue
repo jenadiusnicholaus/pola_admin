@@ -56,7 +56,7 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, useToast } from 'vuestic-ui'
 import { validators } from '../../services/utils'
-import { useAdminAuthStore } from '../../stores/verification-store'
+import { useAdminAuthStore } from '../../stores/user-store'
 
 const { validate } = useForm('form')
 const { push } = useRouter()

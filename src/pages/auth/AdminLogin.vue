@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAdminAuthStore } from '../../stores/verification-store'
+import { useAdminAuthStore } from '../../stores/user-store'
 
 const router = useRouter()
 const adminAuthStore = useAdminAuthStore()

@@ -66,13 +66,41 @@ const handleEditUser = (user: AdminUser) => {
 
 const handleSaveUser = async (userData: any) => {
   if (isEditMode.value && selectedUser.value) {
-    const success = await updateUser(selectedUser.value.id, userData)
-    if (success) {
+    // Detect if role changed
+    const roleChanged = userData.user_role && userData.user_role !== selectedUser.value.user_role?.role_name
+
+    // Separate role from other data (role must be updated via assign_role endpoint)
+    const { user_role, ...otherData } = userData
+
+    // Update user profile (without role)
+    const success = await updateUser(selectedUser.value.id, otherData)
+
+    // If role changed, assign it separately using the dedicated endpoint
+    if (success && roleChanged) {
+      const roleSuccess = await assignRole(selectedUser.value.id, user_role)
+      if (roleSuccess) {
+        notify({
+          message: 'User and role updated successfully',
+          color: 'success',
+        })
+      } else {
+        notify({
+          message: 'User updated but role assignment failed',
+          color: 'warning',
+        })
+      }
+    } else if (success) {
       notify({
         message: 'User updated successfully',
         color: 'success',
       })
+    }
+
+    if (success) {
       showUserFormModal.value = false
+      // Refresh the user list and statistics
+      await fetchUsers()
+      await fetchStats()
     }
   } else {
     const newUser = await createUser(userData)
@@ -82,6 +110,9 @@ const handleSaveUser = async (userData: any) => {
         color: 'success',
       })
       showUserFormModal.value = false
+      // Refresh the user list and statistics
+      await fetchUsers()
+      await fetchStats()
     }
   }
 }
@@ -93,6 +124,9 @@ const handleDeleteUser = async (user: AdminUser) => {
       message: `User ${user.first_name} ${user.last_name} deleted successfully`,
       color: 'success',
     })
+    // Refresh the user list and statistics
+    await fetchUsers()
+    await fetchStats()
   }
 }
 
@@ -111,6 +145,8 @@ const handleRoleAssign = async (roleName: string) => {
         color: 'success',
       })
       showRoleModal.value = false
+      // Refresh the user list
+      await fetchUsers()
     }
   }
 }
@@ -123,6 +159,9 @@ const handleToggleActive = async (user: AdminUser) => {
       message: `User ${user.is_active ? 'deactivated' : 'activated'} successfully`,
       color: 'success',
     })
+    // Refresh the user list and statistics
+    await fetchUsers()
+    await fetchStats()
   }
 }
 
@@ -134,6 +173,9 @@ const handleMakeStaff = async (user: AdminUser) => {
       message: `${user.first_name} ${user.last_name} is now a staff member`,
       color: 'success',
     })
+    // Refresh the user list and statistics
+    await fetchUsers()
+    await fetchStats()
   }
 }
 
@@ -144,6 +186,9 @@ const handleRemoveStaff = async (user: AdminUser) => {
       message: `Staff privileges removed from ${user.first_name} ${user.last_name}`,
       color: 'success',
     })
+    // Refresh the user list and statistics
+    await fetchUsers()
+    await fetchStats()
   }
 }
 // Permission management

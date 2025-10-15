@@ -18,13 +18,6 @@ export default {
         icon: 'vuestic-iconset-dashboard',
       },
     },
-    {
-      name: 'users',
-      displayName: 'menu.users',
-      meta: {
-        icon: 'group',
-      },
-    },
     // {
     //   name: 'projects',
     //   displayName: 'menu.projects',
@@ -32,27 +25,27 @@ export default {
     //     icon: 'folder_shared',
     //   },
     // },
-    {
-      name: 'payments',
-      displayName: 'menu.payments',
-      meta: {
-        icon: 'credit_card',
-      },
-      children: [
-        {
-          name: 'payment-methods',
-          displayName: 'menu.payment-methods',
-        },
-        {
-          name: 'pricing-plans',
-          displayName: 'menu.pricing-plans',
-        },
-        {
-          name: 'billing',
-          displayName: 'menu.billing',
-        },
-      ],
-    },
+    // {
+    //   name: 'payments',
+    //   displayName: 'menu.payments',
+    //   meta: {
+    //     icon: 'credit_card',
+    //   },
+    //   children: [
+    //     {
+    //       name: 'payment-methods',
+    //       displayName: 'menu.payment-methods',
+    //     },
+    //     {
+    //       name: 'pricing-plans',
+    //       displayName: 'menu.pricing-plans',
+    //     },
+    //     {
+    //       name: 'billing',
+    //       displayName: 'menu.billing',
+    //     },
+    //   ],
+    // },
     // {
     //   name: 'auth',
     //   displayName: 'menu.auth',
@@ -75,13 +68,13 @@ export default {
     //   ],
     // },
 
-    {
-      name: 'faq',
-      displayName: 'menu.faq',
-      meta: {
-        icon: 'quiz',
-      },
-    },
+    // {
+    //   name: 'faq',
+    //   displayName: 'menu.faq',
+    //   meta: {
+    //     icon: 'quiz',
+    //   },
+    // },
     // {
     //   name: '404',
     //   displayName: 'menu.404',
@@ -89,20 +82,20 @@ export default {
     //     icon: 'vuestic-iconset-files',
     //   },
     // },
-    {
-      name: 'preferences',
-      displayName: 'menu.preferences',
-      meta: {
-        icon: 'manage_accounts',
-      },
-    },
-    {
-      name: 'settings',
-      displayName: 'menu.settings',
-      meta: {
-        icon: 'settings',
-      },
-    },
+    // {
+    //   name: 'preferences',
+    //   displayName: 'menu.preferences',
+    //   meta: {
+    //     icon: 'manage_accounts',
+    //   },
+    // },
+    // {
+    //   name: 'settings',
+    //   displayName: 'menu.settings',
+    //   meta: {
+    //     icon: 'settings',
+    //   },
+    // },
     {
       name: 'admin-users',
       displayName: 'menu.admin-users',
@@ -128,6 +121,35 @@ export default {
         {
           name: 'document-review',
           displayName: 'menu.document-review',
+        },
+      ],
+    },
+    {
+      name: 'subscriptions',
+      displayName: 'menu.subscriptions',
+      meta: {
+        icon: 'subscriptions',
+      },
+      children: [
+        {
+          name: 'subscriptions-dashboard',
+          displayName: 'menu.subscriptions-dashboard',
+        },
+        {
+          name: 'plans',
+          displayName: 'menu.plans',
+        },
+        {
+          name: 'subscriptions-list',
+          displayName: 'menu.subscriptions-list',
+        },
+        {
+          name: 'transactions',
+          displayName: 'menu.transactions',
+        },
+        {
+          name: 'wallets',
+          displayName: 'menu.wallets',
         },
       ],
     },

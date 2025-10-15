@@ -1,0 +1,798 @@
+<script setup lang="ts">
+import { onMounted, ref, computed } from 'vue'
+import { usePlans } from '../../../composables/usePlans'
+
+const { plans, isLoading, fetchPlans, createPlan, updatePlan, activatePlan, deactivatePlan, deletePlan } = usePlans()
+
+const showModal = ref(false)
+const isEditMode = ref(false)
+const editingPlanId = ref<number | null>(null)
+
+// Form data
+const form = ref({
+  name: '',
+  description: '',
+  price: '',
+  currency: 'TZS',
+  duration_days: 30,
+  features: [] as string[],
+  is_active: true,
+
+  // Benefits/Permissions (11 fields from API)
+  full_legal_library_access: true,
+  monthly_questions_limit: 10,
+  free_documents_per_month: 3,
+  legal_updates: true,
+  forum_access: true,
+  student_hub_access: true,
+  priority_support: false,
+  consultation_discount: 0,
+  discount_on_consultations: false,
+  advanced_search: false,
+  api_access: false,
+})
+
+const newFeature = ref('')
+
+onMounted(() => {
+  fetchPlans()
+})
+
+const modalTitle = computed(() => (isEditMode.value ? 'Edit Plan' : 'Create Plan'))
+const modalOkText = computed(() => (isEditMode.value ? 'Update' : 'Create'))
+
+const openCreateModal = () => {
+  isEditMode.value = false
+  editingPlanId.value = null
+  resetForm()
+  showModal.value = true
+}
+
+const openEditModal = (plan: any) => {
+  isEditMode.value = true
+  editingPlanId.value = plan.id
+  form.value = {
+    name: plan.name,
+    description: plan.description || '',
+    price: plan.price,
+    currency: plan.currency,
+    duration_days: plan.duration_days,
+    features: [...(plan.features || [])],
+    is_active: plan.is_active,
+
+    // Benefits
+    full_legal_library_access: plan.full_legal_library_access ?? true,
+    monthly_questions_limit: plan.monthly_questions_limit ?? 10,
+    free_documents_per_month: plan.free_documents_per_month ?? 3,
+    legal_updates: plan.legal_updates ?? true,
+    forum_access: plan.forum_access ?? true,
+    student_hub_access: plan.student_hub_access ?? true,
+    priority_support: plan.priority_support ?? false,
+    consultation_discount: plan.consultation_discount ?? 0,
+    discount_on_consultations: plan.discount_on_consultations ?? false,
+    advanced_search: plan.advanced_search ?? false,
+    api_access: plan.api_access ?? false,
+  }
+  showModal.value = true
+}
+
+const resetForm = () => {
+  form.value = {
+    name: '',
+    description: '',
+    price: '',
+    currency: 'TZS',
+    duration_days: 30,
+    features: [],
+    is_active: true,
+
+    // Reset benefits to defaults
+    full_legal_library_access: true,
+    monthly_questions_limit: 10,
+    free_documents_per_month: 3,
+    legal_updates: true,
+    forum_access: true,
+    student_hub_access: true,
+    priority_support: false,
+    consultation_discount: 0,
+    discount_on_consultations: false,
+    advanced_search: false,
+    api_access: false,
+  }
+  newFeature.value = ''
+}
+
+const addFeature = () => {
+  if (newFeature.value.trim()) {
+    form.value.features.push(newFeature.value.trim())
+    newFeature.value = ''
+  }
+}
+
+const removeFeature = (index: number) => {
+  form.value.features.splice(index, 1)
+}
+
+const handleSave = async () => {
+  try {
+    if (isEditMode.value && editingPlanId.value) {
+      await updatePlan(editingPlanId.value, form.value)
+    } else {
+      await createPlan(form.value)
+    }
+    showModal.value = false
+    resetForm()
+    await fetchPlans()
+  } catch (error) {
+    console.error('Failed to save plan:', error)
+  }
+}
+
+const handleDelete = async (plan: any) => {
+  if (confirm(`Are you sure you want to delete the plan "${plan.name}"?`)) {
+    await deletePlan(plan.id)
+    await fetchPlans()
+  }
+}
+
+const handleToggleActive = async (plan: any) => {
+  if (plan.is_active) {
+    await deactivatePlan(plan.id)
+  } else {
+    await activatePlan(plan.id)
+  }
+  await fetchPlans()
+}
+
+const getBenefitsList = (plan: any) => {
+  const benefits = []
+
+  if (plan.full_legal_library_access) {
+    benefits.push({ icon: 'menu_book', text: 'Full Legal Library Access', enabled: true })
+  }
+
+  if (plan.monthly_questions_limit !== undefined) {
+    const text =
+      plan.monthly_questions_limit === 0 ? 'Unlimited Questions' : `${plan.monthly_questions_limit} Questions/Month`
+    benefits.push({ icon: 'help', text, enabled: true })
+  }
+
+  if (plan.free_documents_per_month > 0) {
+    benefits.push({
+      icon: 'description',
+      text: `${plan.free_documents_per_month} Free Documents/Month`,
+      enabled: true,
+    })
+  }
+
+  if (plan.legal_updates) {
+    benefits.push({ icon: 'newspaper', text: 'Legal Updates & News', enabled: true })
+  }
+
+  if (plan.forum_access) {
+    benefits.push({ icon: 'forum', text: 'Forum Access', enabled: true })
+  }
+
+  if (plan.student_hub_access) {
+    benefits.push({ icon: 'school', text: 'Student Hub Access', enabled: true })
+  }
+
+  if (plan.priority_support) {
+    benefits.push({ icon: 'stars', text: 'Priority Support', enabled: true })
+  }
+
+  if (plan.discount_on_consultations && plan.consultation_discount > 0) {
+    benefits.push({
+      icon: 'local_offer',
+      text: `${plan.consultation_discount}% Consultation Discount`,
+      enabled: true,
+    })
+  }
+
+  if (plan.advanced_search) {
+    benefits.push({ icon: 'manage_search', text: 'Advanced Search', enabled: true })
+  }
+
+  if (plan.api_access) {
+    benefits.push({ icon: 'api', text: 'API Access', enabled: true })
+  }
+
+  return benefits
+}
+</script>
+
+<template>
+  <div class="plans-page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Subscription Plans</h1>
+        <p class="page-subtitle">Create and manage all subscription plans</p>
+      </div>
+      <VaButton icon="add" color="primary" @click="openCreateModal">Create Plan</VaButton>
+    </div>
+
+    <!-- Plans Grid -->
+    <div v-if="isLoading" class="loading-container">
+      <VaProgressCircle indeterminate />
+      <p>Loading plans...</p>
+    </div>
+
+    <div v-else-if="plans.length === 0" class="empty-state">
+      <VaIcon name="inbox" size="4rem" color="secondary" />
+      <h3>No plans yet</h3>
+      <p>Create your first subscription plan to get started</p>
+      <VaButton icon="add" @click="openCreateModal">Create Your First Plan</VaButton>
+    </div>
+
+    <div v-else class="plans-grid">
+      <VaCard
+        v-for="plan in plans"
+        :key="plan.id"
+        class="plan-card"
+        :class="{ 'plan-card--inactive': !plan.is_active }"
+      >
+        <VaCardContent>
+          <!-- Card Header -->
+          <div class="plan-card-header">
+            <div class="plan-title-section">
+              <h3 class="plan-name">{{ plan.name }}</h3>
+              <VaBadge :text="plan.is_active ? 'Active' : 'Inactive'" :color="plan.is_active ? 'success' : 'danger'" />
+            </div>
+            <div class="plan-actions">
+              <VaButton preset="plain" icon="edit" size="small" title="Edit Plan" @click="openEditModal(plan)" />
+              <VaButton
+                preset="plain"
+                icon="delete"
+                size="small"
+                color="danger"
+                title="Delete Plan"
+                @click="handleDelete(plan)"
+              />
+            </div>
+          </div>
+
+          <!-- Description -->
+          <p v-if="plan.description" class="plan-description">{{ plan.description }}</p>
+          <p v-else class="plan-description plan-description--empty">No description provided</p>
+
+          <!-- Price -->
+          <div class="plan-price-section">
+            <div class="price-amount">
+              <span class="currency">{{ plan.currency }}</span>
+              <span class="price">{{ parseFloat(plan.price).toLocaleString() }}</span>
+            </div>
+            <div class="price-duration">
+              <VaIcon name="schedule" size="1rem" />
+              <span>{{ plan.duration_days }} days</span>
+            </div>
+          </div>
+
+          <!-- Benefits -->
+          <div class="plan-benefits">
+            <h4 class="benefits-title">📋 Plan Benefits</h4>
+            <ul v-if="getBenefitsList(plan).length > 0" class="benefits-list-card">
+              <li v-for="(benefit, index) in getBenefitsList(plan)" :key="index" class="benefit-item">
+                <VaIcon :name="benefit.icon" size="1.125rem" color="primary" />
+                <span>{{ benefit.text }}</span>
+              </li>
+            </ul>
+            <p v-else class="no-benefits-text">No benefits configured yet</p>
+          </div>
+
+          <!-- Card Footer Actions -->
+          <div class="plan-card-footer">
+            <VaButton
+              :color="plan.is_active ? 'warning' : 'success'"
+              :icon="plan.is_active ? 'toggle_off' : 'toggle_on'"
+              size="small"
+              @click="handleToggleActive(plan)"
+            >
+              {{ plan.is_active ? 'Deactivate' : 'Activate' }}
+            </VaButton>
+          </div>
+        </VaCardContent>
+      </VaCard>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <VaModal
+      v-model="showModal"
+      :title="modalTitle"
+      size="large"
+      :ok-text="modalOkText"
+      cancel-text="Cancel"
+      @ok="handleSave"
+      @cancel="resetForm"
+    >
+      <div class="modal-form">
+        <!-- Plan Name -->
+        <VaInput v-model="form.name" label="Plan Name" placeholder="e.g., Premium Monthly" required />
+
+        <!-- Description -->
+        <VaTextarea
+          v-model="form.description"
+          label="Description"
+          placeholder="Describe what this plan includes"
+          :min-rows="2"
+        />
+
+        <!-- Price and Currency -->
+        <div class="form-row">
+          <VaInput v-model="form.price" label="Price" type="number" placeholder="0.00" required class="flex-1" />
+          <VaSelect v-model="form.currency" label="Currency" :options="['TZS', 'USD', 'EUR']" class="currency-select" />
+        </div>
+
+        <!-- Duration -->
+        <VaInput
+          v-model="form.duration_days"
+          label="Duration (Days)"
+          type="number"
+          placeholder="30"
+          required
+          hint="Number of days this plan is valid"
+        />
+
+        <!-- Features -->
+        <div class="features-section">
+          <label class="va-input-label">Features</label>
+          <div class="feature-input-row">
+            <VaInput v-model="newFeature" class="flex-1" placeholder="Add a feature" @keyup.enter="addFeature" />
+            <VaButton icon="add" @click="addFeature">Add</VaButton>
+          </div>
+
+          <div v-if="form.features.length > 0" class="features-list">
+            <VaChip
+              v-for="(feature, index) in form.features"
+              :key="index"
+              closeable
+              color="primary"
+              @update:modelValue="removeFeature(index)"
+            >
+              {{ feature }}
+            </VaChip>
+          </div>
+          <p v-else class="no-features">No features added yet</p>
+        </div>
+
+        <!-- Active Status -->
+        <VaSwitch v-model="form.is_active" label="Active" />
+
+        <!-- Benefits & Permissions Section -->
+        <div class="benefits-section">
+          <h3 class="section-title">📋 Benefits & Permissions</h3>
+
+          <div class="benefits-grid">
+            <!-- Library Access -->
+            <div class="benefit-field">
+              <VaSwitch v-model="form.full_legal_library_access" label="📚 Full Legal Library Access" />
+              <small>Access to complete legal knowledge library</small>
+            </div>
+
+            <!-- Questions Limit -->
+            <div class="benefit-field">
+              <VaInput
+                v-model="form.monthly_questions_limit"
+                type="number"
+                label="🤔 Monthly Questions Limit"
+                placeholder="0 = Unlimited"
+                min="0"
+              />
+              <small>Number of questions allowed per month (0 = unlimited)</small>
+            </div>
+
+            <!-- Free Documents -->
+            <div class="benefit-field">
+              <VaInput
+                v-model="form.free_documents_per_month"
+                type="number"
+                label="📄 Free Documents per Month"
+                placeholder="0"
+                min="0"
+              />
+              <small>Number of free legal documents per month</small>
+            </div>
+
+            <!-- Legal Updates -->
+            <div class="benefit-field">
+              <VaSwitch v-model="form.legal_updates" label="📰 Legal Updates & News" />
+              <small>Receive regular legal news and updates</small>
+            </div>
+
+            <!-- Forum Access -->
+            <div class="benefit-field">
+              <VaSwitch v-model="form.forum_access" label="💬 Forum Access" />
+              <small>Access to community discussion forums</small>
+            </div>
+
+            <!-- Student Hub -->
+            <div class="benefit-field">
+              <VaSwitch v-model="form.student_hub_access" label="🎓 Student Hub Access" />
+              <small>Student collaboration platform</small>
+            </div>
+
+            <!-- Priority Support -->
+            <div class="benefit-field">
+              <VaSwitch v-model="form.priority_support" label="⭐ Priority Support" />
+              <small>Priority customer support queue</small>
+            </div>
+
+            <!-- Consultation Discount -->
+            <div class="benefit-field">
+              <VaSwitch v-model="form.discount_on_consultations" label="💰 Discount on Consultations" />
+              <VaInput
+                v-if="form.discount_on_consultations"
+                v-model="form.consultation_discount"
+                type="number"
+                label="Discount Percentage"
+                placeholder="0"
+                min="0"
+                max="100"
+                class="mt-2"
+              />
+              <small>Enable consultation discount and set percentage</small>
+            </div>
+
+            <!-- Advanced Search -->
+            <div class="benefit-field">
+              <VaSwitch v-model="form.advanced_search" label="🔍 Advanced Search" />
+              <small>Advanced search and filtering features</small>
+            </div>
+
+            <!-- API Access -->
+            <div class="benefit-field">
+              <VaSwitch v-model="form.api_access" label="🔌 API Access" />
+              <small>API access for integrations</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </VaModal>
+  </div>
+</template>
+
+<style scoped>
+.plans-page {
+  padding: 0.5rem 0;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
+}
+
+.page-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Loading & Empty States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+  text-align: center;
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.empty-state p {
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Plans Grid */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Plan Card */
+.plan-card {
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  height: 100%;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  border-color: #e5e7eb;
+}
+
+.plan-card--inactive {
+  opacity: 0.7;
+  background: #f9fafb;
+}
+
+.plan-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.plan-title-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plan-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.plan-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.plan-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem 0;
+}
+
+.plan-description--empty {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* Price Section */
+.plan-price-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.price-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.currency {
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.price {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.price-duration {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+/* Features */
+.plan-benefits {
+  margin-bottom: 1.5rem;
+}
+
+.benefits-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.benefits-list-card {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  padding: 0.5rem;
+  background: #f0f9ff;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.no-benefits-text {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-style: italic;
+  margin: 0;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+/* Card Footer */
+.plan-card-footer {
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Modal Form Styles */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.currency-select {
+  min-width: 120px;
+}
+
+.features-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.va-input-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.feature-input-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.features-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  min-height: 60px;
+}
+
+.no-features {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin: 0;
+}
+
+/* Benefits Section in Modal */
+.benefits-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f0f9ff;
+  border-radius: 12px;
+  border: 2px solid #bfdbfe;
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0 0 1.5rem 0;
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.benefit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.benefit-field small {
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-row {
+    flex-direction: column;
+  }
+
+  .currency-select {
+    min-width: 100%;
+  }
+
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .price {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .plans-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1400px) {
+  .plans-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+</style>

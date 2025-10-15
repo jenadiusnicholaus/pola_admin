@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { adminAuthService, AdminUser } from '../services/adminAuthService'
 import {
   verificationService,
   VerificationStatistics,
@@ -8,75 +7,6 @@ import {
   VerificationListResponse,
   PendingDocumentsResponse,
 } from '../services/verificationService'
-
-export const useAdminAuthStore = defineStore('adminAuth', {
-  state: () => ({
-    user: null as AdminUser | null,
-    isAuthenticated: false,
-    loading: false,
-    error: null as string | null,
-  }),
-
-  getters: {
-    isLoggedIn: (state) => state.isAuthenticated && !!state.user,
-    userFullName: (state) => (state.user ? `${state.user.first_name} ${state.user.last_name}` : ''),
-    isAdmin: (state) => state.user?.is_admin || false,
-  },
-
-  actions: {
-    async login(email: string, password: string) {
-      this.loading = true
-      this.error = null
-
-      try {
-        const response = await adminAuthService.login(email, password)
-        this.user = response.user
-        this.isAuthenticated = true
-        return response
-      } catch (error: any) {
-        this.error = error.message
-        throw error
-      } finally {
-        this.loading = false
-      }
-    },
-
-    logout() {
-      adminAuthService.logout()
-      this.user = null
-      this.isAuthenticated = false
-      this.error = null
-    },
-
-    async checkAuth() {
-      const token = adminAuthService.getToken()
-
-      // Token is the minimum requirement for authentication
-      // User object is optional (backend may not return it)
-      if (token) {
-        const user = adminAuthService.getCurrentUser()
-        if (user) {
-          this.user = user
-        }
-        this.isAuthenticated = true
-        return true
-      } else {
-        this.logout()
-        return false
-      }
-    },
-
-    async refreshToken() {
-      try {
-        await adminAuthService.refreshToken()
-        return true
-      } catch (error) {
-        this.logout()
-        return false
-      }
-    },
-  },
-})
 
 export const useVerificationStore = defineStore('verification', {
   state: () => ({

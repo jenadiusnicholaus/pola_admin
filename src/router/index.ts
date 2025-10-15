@@ -34,11 +34,6 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../pages/preferences/Preferences.vue'),
       },
       {
-        name: 'users',
-        path: 'users',
-        component: () => import('../pages/users/UsersPage.vue'),
-      },
-      {
         name: 'admin-users',
         path: 'admin-users',
         component: () => import('../pages/users/AdminUsersPage.vue'),
@@ -54,11 +49,6 @@ const routes: Array<RouteRecordRaw> = [
         path: '/payments',
         component: RouteViewComponent,
         children: [
-          {
-            name: 'payment-methods',
-            path: 'payment-methods',
-            component: () => import('../pages/payments/PaymentsPage.vue'),
-          },
           {
             name: 'billing',
             path: 'billing',
@@ -118,6 +108,38 @@ const routes: Array<RouteRecordRaw> = [
             name: 'document-review',
             path: 'documents',
             component: () => import('../pages/admin/pages/verification/DocumentReview.vue'),
+          },
+        ],
+      },
+      {
+        name: 'subscriptions',
+        path: '/subscriptions',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'subscriptions-dashboard',
+            path: 'dashboard',
+            component: () => import('../pages/subscriptions/SubscriptionsDashboard.vue'),
+          },
+          {
+            name: 'plans',
+            path: 'plans',
+            component: () => import('../pages/subscriptions/plans/PlansPage.vue'),
+          },
+          {
+            name: 'subscriptions-list',
+            path: 'subscriptions',
+            component: () => import('../pages/subscriptions/subscriptions/SubscriptionsPage.vue'),
+          },
+          {
+            name: 'transactions',
+            path: 'transactions',
+            component: () => import('../pages/subscriptions/transactions/TransactionsPage.vue'),
+          },
+          {
+            name: 'wallets',
+            path: 'wallets',
+            component: () => import('../pages/subscriptions/wallets/WalletsPage.vue'),
           },
         ],
       },
