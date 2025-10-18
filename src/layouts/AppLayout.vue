@@ -21,7 +21,7 @@
       <AppLayoutNavigation v-if="!isMobile" class="p-4" />
       <main class="p-4 pt-0">
         <article>
-          <RouterView />
+          <RouterView :key="route.fullPath" />
         </article>
       </main>
     </template>
@@ -31,7 +31,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { onBeforeRouteUpdate } from 'vue-router'
+import { onBeforeRouteUpdate, useRoute } from 'vue-router'
 import { useBreakpoint } from 'vuestic-ui'
 
 import { useGlobalStore } from '../stores/global-store'
@@ -41,6 +41,7 @@ import AppNavbar from '../components/navbar/AppNavbar.vue'
 import AppSidebar from '../components/sidebar/AppSidebar.vue'
 
 const GlobalStore = useGlobalStore()
+const route = useRoute()
 
 const breakpoints = useBreakpoint()
 

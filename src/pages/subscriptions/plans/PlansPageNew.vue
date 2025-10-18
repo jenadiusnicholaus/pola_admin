@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { usePlans } from '../../../composables'
+import { onMounted, ref, computed } from 'vue'
+import { usePlans } from '../../../composables/usePlans'
 
 const {
   plans,
@@ -20,33 +20,18 @@ const editingPlanId = ref<number | null>(null)
 
 const form = ref({
   name: '',
-  name_sw: '',
   description: '',
-  description_sw: '',
   price: '',
-  currency: 'TZS',
-  plan_type: 'free_trial',
+  plan_type: 'monthly',
   duration_days: 30,
   is_active: true,
-
-  // Access & Features
-  full_legal_library_access: true,
-  monthly_questions_limit: 10,
-  free_documents_per_month: 1,
-  legal_updates: true,
-  forum_access: true,
-  student_hub_access: true,
-
-  // Benefits
-  benefits_en: [] as string[],
-  benefits_sw: [] as string[],
 })
 
 onMounted(async () => {
   await Promise.all([fetchPlans(), fetchSubscriptionStatistics()])
 })
 
-const getModalTitle = () => (isEditMode.value ? 'Edit Plan' : 'Create Plan')
+const modalTitle = computed(() => (isEditMode.value ? 'Edit Plan' : 'Create Plan'))
 
 const openCreateModal = () => {
   isEditMode.value = false
@@ -60,26 +45,11 @@ const openEditModal = (plan: any) => {
   editingPlanId.value = plan.id
   form.value = {
     name: plan.name,
-    name_sw: plan.name_sw || '',
     description: plan.description || '',
-    description_sw: plan.description_sw || '',
     price: plan.price,
-    currency: plan.currency || 'TZS',
     plan_type: plan.plan_type,
     duration_days: plan.duration_days,
     is_active: plan.is_active,
-
-    // Access & Features
-    full_legal_library_access: plan.full_legal_library_access ?? true,
-    monthly_questions_limit: plan.monthly_questions_limit ?? 10,
-    free_documents_per_month: plan.free_documents_per_month ?? 1,
-    legal_updates: plan.legal_updates ?? true,
-    forum_access: plan.forum_access ?? true,
-    student_hub_access: plan.student_hub_access ?? true,
-
-    // Benefits
-    benefits_en: plan.benefits_en || [],
-    benefits_sw: plan.benefits_sw || [],
   }
   showModal.value = true
 }
@@ -87,51 +57,21 @@ const openEditModal = (plan: any) => {
 const resetForm = () => {
   form.value = {
     name: '',
-    name_sw: '',
     description: '',
-    description_sw: '',
     price: '',
-    currency: 'TZS',
-    plan_type: 'free_trial',
+    plan_type: 'monthly',
     duration_days: 30,
     is_active: true,
-
-    // Access & Features
-    full_legal_library_access: true,
-    monthly_questions_limit: 10,
-    free_documents_per_month: 1,
-    legal_updates: true,
-    forum_access: true,
-    student_hub_access: true,
-
-    // Benefits
-    benefits_en: [],
-    benefits_sw: [],
   }
 }
 
 const handleSave = async () => {
-  console.log('Save clicked, form data:', form.value)
-
   try {
-    // Clean the form data - remove empty benefits and prepare payload
-    const payload = {
-      ...form.value,
-      // Filter out empty benefits
-      benefits_en: (form.value.benefits_en || []).filter((b) => b && b.trim() !== ''),
-      benefits_sw: (form.value.benefits_sw || []).filter((b) => b && b.trim() !== ''),
-      // Ensure price is a number
-      price: parseFloat(form.value.price) || 0,
-    }
-
-    console.log('Saving plan with payload:', payload) // Debug log
-
     if (isEditMode.value && editingPlanId.value) {
-      await updatePlan(editingPlanId.value, payload)
+      await updatePlan(editingPlanId.value, form.value)
     } else {
-      await createPlan(payload)
+      await createPlan(form.value)
     }
-
     showModal.value = false
     resetForm()
     await Promise.all([fetchPlans(), fetchSubscriptionStatistics()])
@@ -159,26 +99,11 @@ const formatCurrency = (value: string | number) => {
 
 const getPlanTypeBadgeColor = (type: string) => {
   const colors: Record<string, string> = {
-    free_trial: 'info',
-    monthly: 'success',
+    monthly: 'primary',
+    yearly: 'success',
+    lifetime: 'warning',
   }
   return colors[type] || 'secondary'
-}
-
-const addBenefitEn = () => {
-  form.value.benefits_en.push('')
-}
-
-const removeBenefitEn = (index: number) => {
-  form.value.benefits_en.splice(index, 1)
-}
-
-const addBenefitSw = () => {
-  form.value.benefits_sw.push('')
-}
-
-const removeBenefitSw = (index: number) => {
-  form.value.benefits_sw.splice(index, 1)
 }
 </script>
 
@@ -249,7 +174,7 @@ const removeBenefitSw = (index: number) => {
           <div class="stat-item">
             <VaIcon name="trending_up" color="success" size="2.5rem" />
             <div class="stat-content">
-              <div class="stat-value">{{ Number(subscriptionStatistics.growth_rate || 0).toFixed(1) }}%</div>
+              <div class="stat-value">{{ (subscriptionStatistics.growth_rate || 0).toFixed(1) }}%</div>
               <div class="stat-label">Growth Rate</div>
             </div>
           </div>
@@ -261,7 +186,7 @@ const removeBenefitSw = (index: number) => {
           <div class="stat-item">
             <VaIcon name="trending_down" color="danger" size="2.5rem" />
             <div class="stat-content">
-              <div class="stat-value">{{ Number(subscriptionStatistics.churn_rate || 0).toFixed(1) }}%</div>
+              <div class="stat-value">{{ (subscriptionStatistics.churn_rate || 0).toFixed(1) }}%</div>
               <div class="stat-label">Churn Rate</div>
             </div>
           </div>
@@ -317,21 +242,6 @@ const removeBenefitSw = (index: number) => {
           <p v-if="plan.description" class="plan-description">{{ plan.description }}</p>
           <p v-else class="plan-description plan-description--empty">No description provided</p>
 
-          <!-- Features Section -->
-          <div v-if="plan.benefits_en && plan.benefits_en.length > 0" class="plan-features">
-            <h4 class="features-title">Features & Benefits</h4>
-            <ul class="features-list">
-              <li v-for="(benefit, index) in plan.benefits_en.slice(0, 3)" :key="index" class="feature-item">
-                <VaIcon name="check_circle" size="0.875rem" color="success" />
-                <span>{{ benefit }}</span>
-              </li>
-              <li v-if="plan.benefits_en.length > 3" class="feature-item more-features">
-                <VaIcon name="more_horiz" size="0.875rem" color="secondary" />
-                <span>+{{ plan.benefits_en.length - 3 }} more features</span>
-              </li>
-            </ul>
-          </div>
-
           <div class="plan-price-section">
             <div class="price-amount">
               <span class="currency">TSh</span>
@@ -375,113 +285,31 @@ const removeBenefitSw = (index: number) => {
       </VaCard>
     </div>
 
-    <!--Create/Edit Modal -->
-    <VaModal
-      v-if="showModal"
-      v-model="showModal"
-      :title="getModalTitle()"
-      size="large"
-      max-height="80vh"
-      hide-default-actions
-      no-outside-dismiss
-    >
-      <div class="modal-form">
-        <div class="form-section">
-          <h3 class="section-title">Basic Information</h3>
+    <!-- Create/Edit Modal -->
+    <VaModal v-model="showModal" :title="modalTitle" size="medium" @ok="handleSave">
+      <VaForm ref="formRef">
+        <VaInput v-model="form.name" label="Plan Name" :rules="[(v) => !!v || 'Name is required']" />
 
-          <VaInput v-model="form.name" label="Plan Name (English)" placeholder="Enter plan name" />
-          <VaInput v-model="form.name_sw" label="Plan Name (Swahili)" placeholder="Enter plan name in Swahili" />
+        <VaTextarea v-model="form.description" label="Description" />
 
-          <VaTextarea v-model="form.description" label="Description (English)" placeholder="Enter description" />
-          <VaTextarea
-            v-model="form.description_sw"
-            label="Description (Swahili)"
-            placeholder="Enter description in Swahili"
-          />
+        <VaSelect
+          v-model="form.plan_type"
+          label="Plan Type"
+          :options="['monthly', 'yearly', 'lifetime']"
+          :rules="[(v) => !!v || 'Plan type is required']"
+        />
 
-          <VaSelect
-            v-model="form.plan_type"
-            label="Plan Type"
-            :options="[
-              { text: 'Free Trial (24 hours)', value: 'free_trial' },
-              { text: 'Monthly Subscription', value: 'monthly' },
-            ]"
-            text-by="text"
-            value-by="value"
-          />
+        <VaInput v-model="form.price" label="Price (TSh)" type="number" :rules="[(v) => !!v || 'Price is required']" />
 
-          <div class="form-row">
-            <VaInput v-model="form.price" label="Price" type="number" placeholder="0.00" class="form-col" />
-            <VaSelect
-              v-model="form.currency"
-              label="Currency"
-              :options="[
-                { text: 'Tanzanian Shilling', value: 'TZS' },
-                { text: 'US Dollar', value: 'USD' },
-                { text: 'Euro', value: 'EUR' },
-              ]"
-              text-by="text"
-              value-by="value"
-              class="form-col"
-            />
-          </div>
+        <VaInput
+          v-model="form.duration_days"
+          label="Duration (days)"
+          type="number"
+          :rules="[(v) => !!v || 'Duration is required']"
+        />
 
-          <VaInput v-model="form.duration_days" label="Duration (days)" type="number" placeholder="30" />
-
-          <VaCheckbox v-model="form.is_active" label="Active Plan" />
-        </div>
-
-        <VaDivider />
-
-        <div class="form-section">
-          <h3 class="section-title">Access & Features</h3>
-
-          <VaCheckbox v-model="form.full_legal_library_access" label="Full Legal Library Access" />
-          <VaCheckbox v-model="form.legal_updates" label="Legal Updates" />
-          <VaCheckbox v-model="form.forum_access" label="Forum Access" />
-          <VaCheckbox v-model="form.student_hub_access" label="Student Hub Access" />
-
-          <VaInput
-            v-model.number="form.monthly_questions_limit"
-            label="Monthly Questions Limit"
-            type="number"
-            min="0"
-          />
-          <VaInput
-            v-model.number="form.free_documents_per_month"
-            label="Free Documents Per Month"
-            type="number"
-            min="0"
-          />
-        </div>
-
-        <VaDivider />
-
-        <div class="form-section">
-          <h3 class="section-title">Benefits (English)</h3>
-          <div v-for="(benefit, index) in form.benefits_en" :key="`en-${index}`" class="benefit-row">
-            <VaInput v-model="form.benefits_en[index]" placeholder="Enter benefit" class="benefit-input" />
-            <VaButton preset="plain" icon="delete" color="danger" size="small" @click="removeBenefitEn(index)" />
-          </div>
-          <VaButton preset="plain" icon="add" size="small" @click="addBenefitEn"> Add Benefit (EN) </VaButton>
-        </div>
-
-        <VaDivider />
-
-        <div class="form-section">
-          <h3 class="section-title">Benefits (Swahili)</h3>
-          <div v-for="(benefit, index) in form.benefits_sw" :key="`sw-${index}`" class="benefit-row">
-            <VaInput v-model="form.benefits_sw[index]" placeholder="Enter benefit" class="benefit-input" />
-            <VaButton preset="plain" icon="delete" color="danger" size="small" @click="removeBenefitSw(index)" />
-          </div>
-          <VaButton preset="plain" icon="add" size="small" @click="addBenefitSw"> Add Benefit (SW) </VaButton>
-        </div>
-      </div>
-
-      <template #footer>
-        <VaButton color="secondary" @click="showModal = false">Cancel</VaButton>
-        <VaButton color="primary" @click="handleSave">{{ isEditMode ? 'Update' : 'Create' }}</VaButton>
-      </template>
+        <VaCheckbox v-model="form.is_active" label="Active" />
+      </VaForm>
     </VaModal>
   </div>
 </template>
@@ -722,77 +550,6 @@ const removeBenefitSw = (index: number) => {
   border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;
-}
-
-/* Features Section */
-.plan-features {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-}
-
-.features-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 0.75rem 0;
-}
-
-.features-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.feature-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.813rem;
-  color: #4b5563;
-  line-height: 1.4;
-}
-
-.feature-item.more-features {
-  color: #6b7280;
-  font-style: italic;
-}
-
-/* Modal Form Sections */
-.form-section {
-  margin-bottom: 1.5rem;
-}
-
-.section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1rem 0;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.form-col {
-  width: 100%;
-}
-
-.benefit-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.benefit-input {
-  flex: 1;
 }
 
 @media (max-width: 768px) {

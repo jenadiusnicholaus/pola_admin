@@ -20,7 +20,7 @@
               :style="{ width: role.percentage + '%', backgroundColor: getRoleColor(role.color) }"
             ></div>
           </div>
-          <span class="role-percentage">{{ role.percentage.toFixed(1) }}%</span>
+          <span class="role-percentage">{{ (role.percentage || 0).toFixed(1) }}%</span>
         </div>
       </div>
     </div>

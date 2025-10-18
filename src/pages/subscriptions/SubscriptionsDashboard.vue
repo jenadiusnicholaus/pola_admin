@@ -4,14 +4,12 @@ import { useRouter } from 'vue-router'
 import { usePlans } from '../../composables/usePlans'
 import { useSubscriptions } from '../../composables/useSubscriptions'
 import { useTransactions } from '../../composables/useTransactions'
-import { useWallets } from '../../composables/useWallets'
 
 const router = useRouter()
 
 const { statistics: plansStats, fetchStatistics: fetchPlansStats } = usePlans()
 const { statistics: subsStats, fetchStatistics: fetchSubsStats } = useSubscriptions()
 const { statistics: transStats, fetchStatistics: fetchTransStats } = useTransactions()
-const { statistics: walletsStats, fetchStatistics: fetchWalletsStats } = useWallets()
 
 const isLoading = ref(true)
 
@@ -21,7 +19,7 @@ onMounted(async () => {
 
 const refreshDashboard = async () => {
   isLoading.value = true
-  await Promise.all([fetchPlansStats(), fetchSubsStats(), fetchTransStats(), fetchWalletsStats()])
+  await Promise.all([fetchPlansStats(), fetchSubsStats(), fetchTransStats()])
   isLoading.value = false
 }
 
@@ -95,14 +93,6 @@ const getPlansActivePercentage = (): number => {
           @click="navigateTo('/subscriptions/transactions')"
         >
           Transactions
-        </VaButton>
-        <VaButton
-          class="action-btn"
-          icon="account_balance_wallet"
-          preset="secondary"
-          @click="navigateTo('/subscriptions/wallets')"
-        >
-          Wallets
         </VaButton>
       </div>
 
@@ -283,79 +273,6 @@ const getPlansActivePercentage = (): number => {
             </VaCardContent>
           </VaCard>
         </div>
-
-        <!-- Right Column: Wallets -->
-        <div class="dashboard-column">
-          <!-- Wallets Overview -->
-          <VaCard class="overview-card wallets-card">
-            <VaCardTitle class="card-title">
-              <div class="title-row">
-                <div>
-                  <VaIcon name="account_balance_wallet" class="title-icon" />
-                  <span>Wallets Overview</span>
-                </div>
-                <VaButton
-                  size="small"
-                  preset="plain"
-                  icon="arrow_forward"
-                  @click="navigateTo('/subscriptions/wallets')"
-                >
-                  View All
-                </VaButton>
-              </div>
-            </VaCardTitle>
-            <VaCardContent>
-              <div class="wallets-stats">
-                <!-- Total Wallets -->
-                <div class="wallet-stat-item">
-                  <div class="wallet-stat-header">
-                    <VaIcon name="account_balance_wallet" color="primary" />
-                    <span class="wallet-stat-label">Total Wallets</span>
-                  </div>
-                  <div class="wallet-stat-value">{{ formatNumber(walletsStats?.total_wallets) }}</div>
-                </div>
-
-                <VaDivider />
-
-                <!-- Total Balance -->
-                <div class="wallet-stat-item highlight">
-                  <div class="wallet-stat-header">
-                    <VaIcon name="account_balance" color="success" />
-                    <span class="wallet-stat-label">Total Balance</span>
-                  </div>
-                  <div class="wallet-stat-value large">{{ formatCurrency(walletsStats?.total_balance) }}</div>
-                </div>
-
-                <VaDivider />
-
-                <!-- Secondary Stats -->
-                <div class="wallet-secondary-stats">
-                  <div class="wallet-secondary-stat">
-                    <div class="wallet-secondary-label">Average Balance</div>
-                    <div class="wallet-secondary-value">{{ formatCurrency(walletsStats?.average_balance) }}</div>
-                  </div>
-                  <div class="wallet-secondary-stat">
-                    <div class="wallet-secondary-label">Wallets with Balance</div>
-                    <div class="wallet-secondary-value">{{ formatNumber(walletsStats?.wallets_with_balance) }}</div>
-                  </div>
-                </div>
-
-                <!-- Alert if frozen wallets -->
-                <VaAlert
-                  v-if="walletsStats?.frozen_wallets && walletsStats.frozen_wallets > 0"
-                  color="warning"
-                  border="left"
-                  class="frozen-alert"
-                >
-                  <template #icon>
-                    <VaIcon name="lock" />
-                  </template>
-                  <span>{{ walletsStats.frozen_wallets }} wallet(s) are currently frozen</span>
-                </VaAlert>
-              </div>
-            </VaCardContent>
-          </VaCard>
-        </div>
       </div>
     </template>
   </div>
@@ -371,10 +288,23 @@ const getPlansActivePercentage = (): number => {
 /* Header */
 .dashboard-header {
   margin-bottom: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
   border-radius: 16px;
   padding: 2rem;
   color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 60%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
 }
 
 .header-content {
@@ -495,22 +425,22 @@ const getPlansActivePercentage = (): number => {
 }
 
 .metric-icon.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: white;
 }
 
 .metric-icon.success {
-  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
 }
 
 .metric-icon.warning {
-  background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: white;
 }
 
 .metric-icon.info {
-  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
   color: white;
 }
 

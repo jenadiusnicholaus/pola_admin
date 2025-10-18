@@ -1,69 +1,78 @@
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vuestic-ui'
 import { adminUserService } from '../../../services/adminUserService'
 import type { AdminUser, AdminUserStats } from '../../../services/adminUserService'
-import UserStatisticsCard from './cards/UserStatisticsCard.vue'
-import RoleDistributionCard from './cards/RoleDistributionCard.vue'
 import RecentUsersCard from './cards/RecentUsersCard.vue'
-import QuickActionsCard from './cards/QuickActionsCard.vue'
-import SystemAlertsCard from './cards/SystemAlertsCard.vue'
 
 const router = useRouter()
 const { init: notify } = useToast()
 
 const stats = ref<AdminUserStats | null>(null)
 const recentUsers = ref<AdminUser[]>([])
-const roleCounts = ref<any>(null)
 const isLoading = ref(false)
-const alerts = ref([
+
+// Quick access items with neutral icons
+const quickLinks = [
   {
-    id: '1',
-    type: 'info' as const,
-    title: 'Welcome to Admin Dashboard',
-    message: 'Manage users, verifications, and permissions from here.',
-    closeable: true,
+    title: 'Analytics',
+    description: 'View detailed statistics and insights',
+    icon: 'bar_chart',
+    route: '/admin/analytics',
+    color: '#6B7280',
   },
-])
+  {
+    title: 'Users',
+    description: 'Manage user accounts and permissions',
+    icon: 'people',
+    route: '/admin-users',
+    color: '#6B7280',
+  },
+  {
+    title: 'Verifications',
+    description: 'Review pending user verifications',
+    icon: 'verified_user',
+    route: '/user/verifications',
+    color: '#6B7280',
+    badge: computed(() => stats.value?.total_users || 0),
+  },
+  {
+    title: 'Subscriptions',
+    description: 'Monitor active subscriptions',
+    icon: 'card_membership',
+    route: '/subscriptions',
+    color: '#6B7280',
+  },
+  {
+    title: 'Transactions',
+    description: 'View payment transactions',
+    icon: 'payments',
+    route: '/subscriptions/transactions',
+    color: '#6B7280',
+  },
+  {
+    title: 'Disbursements',
+    description: 'Manage consultant payments',
+    icon: 'account_balance_wallet',
+    route: '/disbursements',
+    color: '#6B7280',
+  },
+]
 
 const fetchDashboardData = async () => {
   isLoading.value = true
   try {
-    // Fetch user statistics
-    const statsData = await adminUserService.getUserStats()
-    stats.value = statsData
-
-    // Fetch recent users (last 5)
+    // Fetch recent users only
     const usersResponse = await adminUserService.getAllUsers({
       page: 1,
-      page_size: 5,
+      page_size: 8,
     })
     recentUsers.value = usersResponse.results
 
-    // Calculate role distribution
-    const allUsersResponse = await adminUserService.getAllUsers({
-      page: 1,
-      page_size: 1000, // Get enough to calculate distribution
-    })
-
-    const counts = {
-      citizen: 0,
-      law_student: 0,
-      paralegal: 0,
-      lawyer: 0,
-      advocate: 0,
-      law_firm: 0,
-    }
-
-    allUsersResponse.results.forEach((user: AdminUser) => {
-      const role = user.user_role?.role_name
-      if (role && role in counts) {
-        counts[role as keyof typeof counts]++
-      }
-    })
-
-    roleCounts.value = counts
+    // Fetch minimal stats for badges
+    const statsData = await adminUserService.getUserStats()
+    stats.value = statsData
   } catch (error) {
     notify({
       message: 'Failed to load dashboard data',
@@ -74,39 +83,12 @@ const fetchDashboardData = async () => {
   }
 }
 
-const handleRefreshStats = () => {
-  fetchDashboardData()
+const navigateTo = (route: string) => {
+  router.push(route)
 }
 
 const handleViewAllUsers = () => {
   router.push('/admin-users')
-}
-
-const handleCreateUser = () => {
-  router.push('/admin-users')
-}
-
-const handleManageVerifications = () => {
-  router.push('/user/verifications')
-}
-
-const handleManagePermissions = () => {
-  router.push('/admin-users')
-}
-
-const handleSettings = () => {
-  router.push('/settings')
-}
-
-const handleReports = () => {
-  notify({
-    message: 'Reports feature coming soon',
-    color: 'info',
-  })
-}
-
-const handleCloseAlert = (id: string) => {
-  alerts.value = alerts.value.filter((alert) => alert.id !== id)
 }
 
 onMounted(() => {
@@ -116,32 +98,51 @@ onMounted(() => {
 
 <template>
   <div class="dashboard-container">
-    <h1 class="dashboard-title">Dashboard</h1>
-
-    <!-- System Alerts -->
-    <SystemAlertsCard :alerts="alerts" @closeAlert="handleCloseAlert" />
-
-    <!-- User Statistics -->
-    <UserStatisticsCard :stats="stats" :loading="isLoading" @refresh="handleRefreshStats" />
-
-    <!-- Two Column Layout -->
-    <div class="dashboard-grid">
-      <!-- Role Distribution -->
-      <RoleDistributionCard :role-counts="roleCounts" :loading="isLoading" />
-
-      <!-- Quick Actions -->
-      <QuickActionsCard
-        @createUser="handleCreateUser"
-        @manageVerifications="handleManageVerifications"
-        @managePermissions="handleManagePermissions"
-        @viewAllUsers="handleViewAllUsers"
-        @settings="handleSettings"
-        @reports="handleReports"
-      />
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div>
+        <h1 class="dashboard-title">Admin Dashboard</h1>
+        <p class="dashboard-subtitle">Quick access to key administrative functions</p>
+      </div>
     </div>
 
-    <!-- Recent Users -->
-    <RecentUsersCard :users="recentUsers" :loading="isLoading" @viewAll="handleViewAllUsers" />
+    <!-- Quick Links Grid -->
+    <div class="quick-links-grid">
+      <VaCard v-for="link in quickLinks" :key="link.route" class="quick-link-card" @click="navigateTo(link.route)">
+        <VaCardContent class="quick-link-content">
+          <div class="quick-link-icon">
+            <VaIcon :name="link.icon" :color="link.color" size="large" />
+          </div>
+          <div class="quick-link-info">
+            <div class="quick-link-title">
+              {{ link.title }}
+              <VaBadge v-if="link.badge" :text="String(link.badge.value)" color="#6B7280" class="ml-2" />
+            </div>
+            <div class="quick-link-description">{{ link.description }}</div>
+          </div>
+          <VaIcon name="arrow_forward" color="#9CA3AF" size="small" class="quick-link-arrow" />
+        </VaCardContent>
+      </VaCard>
+    </div>
+
+    <!-- Recent Activity -->
+    <VaCard class="recent-section">
+      <VaCardTitle>
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Recent Users</h2>
+            <p class="section-subtitle">Latest registered accounts</p>
+          </div>
+          <VaButton preset="plain" @click="handleViewAllUsers">
+            View All
+            <VaIcon name="arrow_forward" size="small" class="ml-1" />
+          </VaButton>
+        </div>
+      </VaCardTitle>
+      <VaCardContent>
+        <RecentUsersCard :users="recentUsers" :loading="isLoading" @viewAll="handleViewAllUsers" />
+      </VaCardContent>
+    </VaCard>
   </div>
 </template>
 
@@ -149,31 +150,132 @@ onMounted(() => {
 .dashboard-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
   padding: 0.5rem 0;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .dashboard-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 0.5rem 0;
-  letter-spacing: -0.02em;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.025em;
 }
 
-.dashboard-grid {
+.dashboard-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0 0;
+}
+
+.quick-links-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.quick-link-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.quick-link-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+}
+
+.quick-link-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem !important;
+}
+
+.quick-link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.quick-link-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-link-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.quick-link-description {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.quick-link-arrow {
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.quick-link-card:hover .quick-link-arrow {
+  opacity: 1;
+}
+
+.recent-section {
+  border: 1px solid #e5e7eb;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.section-subtitle {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
 }
 
 @media (max-width: 768px) {
-  .dashboard-grid {
+  .quick-links-grid {
     grid-template-columns: 1fr;
   }
 
   .dashboard-title {
     font-size: 1.5rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 1rem;
   }
 }
 </style>

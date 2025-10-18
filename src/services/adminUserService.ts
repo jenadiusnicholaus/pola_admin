@@ -1,7 +1,6 @@
 import makeRequest from './makeRequest'
 import type IRequestParams from '../models/models'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+import API_ENDPOINTS from './apiConfig'
 
 export interface AdminUserRole {
   id?: number
@@ -74,9 +73,8 @@ export interface UserPermissionsResponse {
   total_permissions: number
 }
 
-export interface AvailablePermissionsResponse {
-  [key: string]: Permission[]
-}
+// Backend returns array of permissions, not grouped object
+export type AvailablePermissionsResponse = Permission[]
 
 export const adminUserService = {
   // User Management APIs
@@ -99,7 +97,7 @@ export const adminUserService = {
     if (params?.page_size) queryParams.append('page_size', params.page_size.toString())
 
     const queryString = queryParams.toString()
-    const url = `${API_BASE_URL}/admin/users/${queryString ? `?${queryString}` : ''}`
+    const url = `${API_ENDPOINTS.adminUsers.list()}${queryString ? `?${queryString}` : ''}`
 
     const requestParams: IRequestParams = {
       url,
@@ -112,7 +110,7 @@ export const adminUserService = {
 
   async getUserById(id: number): Promise<AdminUser> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/${id}/`,
+      url: API_ENDPOINTS.adminUsers.detail(id),
       method: 'GET',
     }
 
@@ -130,7 +128,7 @@ export const adminUserService = {
     is_staff?: boolean
   }): Promise<AdminUser> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/`,
+      url: API_ENDPOINTS.adminUsers.create(),
       method: 'POST',
       data,
     }
@@ -141,7 +139,7 @@ export const adminUserService = {
 
   async updateUser(id: number, data: Partial<AdminUser>): Promise<AdminUser> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/${id}/`,
+      url: API_ENDPOINTS.adminUsers.update(id),
       method: 'PUT',
       data,
     }
@@ -152,7 +150,7 @@ export const adminUserService = {
 
   async partialUpdateUser(id: number, data: Partial<AdminUser>): Promise<AdminUser> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/${id}/`,
+      url: API_ENDPOINTS.adminUsers.update(id),
       method: 'PATCH',
       data,
     }
@@ -163,7 +161,7 @@ export const adminUserService = {
 
   async deleteUser(id: number): Promise<void> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/${id}/`,
+      url: API_ENDPOINTS.adminUsers.delete(id),
       method: 'DELETE',
     }
 
@@ -172,7 +170,7 @@ export const adminUserService = {
 
   async assignRole(userId: number, roleName: string): Promise<{ message: string; user: AdminUser }> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/${userId}/assign_role/`,
+      url: API_ENDPOINTS.adminUsers.assignRole(userId),
       method: 'POST',
       data: { role_name: roleName },
     }
@@ -183,7 +181,7 @@ export const adminUserService = {
 
   async toggleActive(userId: number): Promise<{ message: string; is_active: boolean; user: AdminUser }> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/${userId}/toggle_active/`,
+      url: API_ENDPOINTS.adminUsers.toggleActive(userId),
       method: 'POST',
     }
 
@@ -193,7 +191,7 @@ export const adminUserService = {
 
   async makeStaff(userId: number): Promise<{ message: string; user: AdminUser }> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/${userId}/make_staff/`,
+      url: API_ENDPOINTS.adminUsers.makeStaff(userId),
       method: 'POST',
     }
 
@@ -203,7 +201,7 @@ export const adminUserService = {
 
   async removeStaff(userId: number): Promise<{ message: string; user: AdminUser }> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/${userId}/remove_staff/`,
+      url: API_ENDPOINTS.adminUsers.removeStaff(userId),
       method: 'POST',
     }
 
@@ -213,7 +211,7 @@ export const adminUserService = {
 
   async getUserStats(): Promise<AdminUserStats> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/users/stats/`,
+      url: API_ENDPOINTS.adminUsers.stats(),
       method: 'GET',
     }
 
@@ -228,7 +226,7 @@ export const adminUserService = {
     if (params?.model) queryParams.append('model', params.model)
 
     const queryString = queryParams.toString()
-    const url = `${API_BASE_URL}/admin/permissions/${queryString ? `?${queryString}` : ''}`
+    const url = `${API_ENDPOINTS.permissions.list()}${queryString ? `?${queryString}` : ''}`
 
     const requestParams: IRequestParams = {
       url,
@@ -241,7 +239,7 @@ export const adminUserService = {
 
   async getUserPermissions(userId: number): Promise<UserPermissionsResponse> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/permissions/user/${userId}/`,
+      url: API_ENDPOINTS.permissions.userPermissions(userId),
       method: 'GET',
     }
 
@@ -256,7 +254,7 @@ export const adminUserService = {
     user: AdminUser
   }> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/permissions/assign/`,
+      url: API_ENDPOINTS.permissions.assign(),
       method: 'POST',
       data,
     }
@@ -272,7 +270,7 @@ export const adminUserService = {
     user: AdminUser
   }> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/permissions/revoke/`,
+      url: API_ENDPOINTS.permissions.revoke(),
       method: 'POST',
       data,
     }
@@ -283,7 +281,7 @@ export const adminUserService = {
 
   async getAvailablePermissions(): Promise<AvailablePermissionsResponse> {
     const requestParams: IRequestParams = {
-      url: `${API_BASE_URL}/admin/permissions/available/`,
+      url: API_ENDPOINTS.permissions.list(),
       method: 'GET',
     }
 

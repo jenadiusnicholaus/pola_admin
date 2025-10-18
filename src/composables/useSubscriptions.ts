@@ -9,11 +9,11 @@ import {
   subscriptionsService,
   type Subscription,
   type SubscriptionFilters,
-  type SubscriptionStatistics,
   type ExtendSubscriptionData,
   type CancelSubscriptionData,
   type CreateSubscriptionForUserData,
 } from '../services/subscriptionsService'
+import { plansService, type SubscriptionStatistics } from '../services/plansService'
 
 export function useSubscriptions() {
   const { init: notify } = useToast()
@@ -28,7 +28,7 @@ export function useSubscriptions() {
   const activeSubscriptions = computed(() => subscriptions.value.filter((sub) => sub.status === 'active'))
   const expiredSubscriptions = computed(() => subscriptions.value.filter((sub) => sub.status === 'expired'))
   const cancelledSubscriptions = computed(() => subscriptions.value.filter((sub) => sub.status === 'cancelled'))
-  const trialSubscriptions = computed(() => subscriptions.value.filter((sub) => sub.is_trial_status))
+  const trialSubscriptions = computed(() => subscriptions.value.filter((sub) => sub.plan_details.type === 'free_trial'))
 
   /**
    * Fetch all subscriptions with filters
@@ -56,7 +56,7 @@ export function useSubscriptions() {
    */
   const fetchStatistics = async () => {
     try {
-      statistics.value = await subscriptionsService.getStatistics()
+      statistics.value = await plansService.getSubscriptionStatistics()
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || 'Failed to fetch statistics'
       notify({

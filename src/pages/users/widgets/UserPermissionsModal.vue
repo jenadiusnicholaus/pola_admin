@@ -17,7 +17,7 @@ const emit = defineEmits<{
 const { init: notify } = useToast()
 
 const userPermissions = ref<UserPermissionsResponse | null>(null)
-const availablePermissions = ref<Record<string, Permission[]>>({})
+const availablePermissions = ref<Permission[]>([])
 const selectedPermissions = ref<string[]>([])
 const searchQuery = ref('')
 const isLoading = ref(false)
@@ -36,17 +36,9 @@ const allUserPermissionCodes = computed(() => {
   return [...directPermissionCodes.value, ...rolePermissionCodes.value]
 })
 
-const availablePermissionsFlat = computed(() => {
-  const permissions: Permission[] = []
-  Object.values(availablePermissions.value).forEach((perms) => {
-    permissions.push(...perms)
-  })
-  return permissions
-})
-
 const permissionsToAssign = computed(() => {
   // Only show permissions not already assigned
-  let filtered = availablePermissionsFlat.value.filter((p) => !allUserPermissionCodes.value.includes(p.codename))
+  let filtered = availablePermissions.value.filter((p) => !allUserPermissionCodes.value.includes(p.codename))
 
   // Apply search filter if query exists
   if (searchQuery.value.trim()) {
@@ -175,8 +167,14 @@ const close = () => {
   emit('update:modelValue', false)
 }
 
-const groupPermissionsByModel = (permissions: Permission[]) => {
+const groupPermissionsByModel = (permissions: Permission[] | undefined) => {
   const grouped: Record<string, Permission[]> = {}
+
+  // Safety check: return empty object if permissions is undefined or not an array
+  if (!permissions || !Array.isArray(permissions)) {
+    return grouped
+  }
+
   permissions.forEach((perm) => {
     const key = perm.content_type || 'Other'
     if (!grouped[key]) {

@@ -1,85 +1,137 @@
 /**
- * Transactions Service
- * Handles all transaction operations including refunds
+ * Payment Transactions Service
+ * Handles all payment transaction operations for subscriptions, consultations, etc.
+ * Based on: /api/v1/admin/subscriptions/transactions/
  */
 
-import { subscriptionApiClient, buildUrl, ENDPOINTS } from './subscriptionApiClient'
+import makeRequest from './makeRequest'
+import type IRequestParams from '../models/models'
+import API_ENDPOINTS from './apiConfig'
+
+export interface UserDetails {
+  id: number
+  email: string
+  full_name: string
+}
+
+export interface RelatedSubscription {
+  id: number
+  plan: string
+  plan_name?: string
+}
+
+export interface RelatedBooking {
+  id: number
+  consultant: string | { full_name: string }
+}
+
+export interface TransactionDetails {
+  type: string
+  amount: number
+  currency: string
+  formatted_amount: string
+  payment_method: string
+  status: string
+  reference: string
+  phone_number?: string
+  account_number?: string
+  provider?: string
+  [key: string]: any // Allow additional dynamic fields
+}
 
 export interface Transaction {
   id: number
-  user: {
-    id: number
-    email: string
-    first_name: string
-    last_name: string
-  }
-  subscription?: {
-    id: number
-    plan_name: string
-  }
-  type: 'subscription' | 'refund' | 'wallet_topup' | 'wallet_deduction'
-  status: 'pending' | 'completed' | 'failed' | 'cancelled'
+  user: number
+  user_details: UserDetails
+  transaction_type: 'subscription' | 'consultation' | 'learning_material' | 'document' | 'call_credit'
   amount: string
   currency: string
-  payment_method: string
-  reference_number: string
+  payment_method: 'mobile_money' | 'bank_transfer' | 'card'
+  payment_reference: string
+  gateway_reference: string
+  status: 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled'
   description: string
-  metadata?: Record<string, any>
+  transaction_details: TransactionDetails
+  related_items: {
+    subscription?: RelatedSubscription
+    booking?: RelatedBooking
+  } | null
   created_at: string
   updated_at: string
-  completed_at?: string
 }
 
 export interface TransactionFilters {
-  status?: string
-  type?: string
-  payment_method?: string
-  start_date?: string
-  end_date?: string
-  email?: string
+  user_id?: number
+  status?: 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled'
+  transaction_type?: 'subscription' | 'consultation' | 'learning_material' | 'document' | 'call_credit'
+  payment_method?: 'mobile_money' | 'bank_transfer' | 'card'
+  date_from?: string // YYYY-MM-DD
+  date_to?: string // YYYY-MM-DD
+  search?: string // Search by reference or email
   page?: number
   page_size?: number
 }
 
 export interface TransactionStatistics {
   total_transactions: number
-  completed_transactions: number
-  pending_transactions: number
-  failed_transactions: number
   total_revenue: number
-  total_refunds: number
-  transactions_by_method: Record<string, number>
-  revenue_by_month: Array<{
-    month: string
-    revenue: number
-  }>
+  by_status: {
+    [status: string]: {
+      count: number
+      total_amount: number
+    }
+  }
+  by_transaction_type: {
+    [type: string]: {
+      count: number
+      total_amount: number
+    }
+  }
+  by_payment_method: {
+    [method: string]: {
+      count: number
+      total_amount: number
+    }
+  }
 }
 
-export interface RefundData {
-  reason: string
-  amount?: number | null
-}
-
-export interface FailTransactionData {
-  reason: string
-}
-
-export interface CancelTransactionData {
-  reason: string
+export interface PaginatedResponse<T> {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
 }
 
 export const transactionsService = {
   /**
-   * Get all transactions with optional filters
+   * Get all payment transactions with optional filters
+   * Supports all 7 filters: user_id, status, transaction_type, payment_method, date_from, date_to, search
    */
-  getAll: async (filters: TransactionFilters = {}): Promise<{ results: Transaction[]; count: number }> => {
-    const params = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value))
-      }
-    })
-    const response = await subscriptionApiClient.get(buildUrl(`${ENDPOINTS.transactions}?${params.toString()}`))
+  getAll: async (filters: TransactionFilters = {}): Promise<PaginatedResponse<Transaction>> => {
+    // Build query string from filters
+    const queryParams: Record<string, string> = {}
+
+    if (filters.user_id) queryParams.user_id = String(filters.user_id)
+    if (filters.status) queryParams.status = filters.status
+    if (filters.transaction_type) queryParams.transaction_type = filters.transaction_type
+    if (filters.payment_method) queryParams.payment_method = filters.payment_method
+    if (filters.date_from) queryParams.date_from = filters.date_from
+    if (filters.date_to) queryParams.date_to = filters.date_to
+    if (filters.search) queryParams.search = filters.search
+    if (filters.page) queryParams.page = String(filters.page)
+    if (filters.page_size) queryParams.page_size = String(filters.page_size)
+
+    const queryString = new URLSearchParams(queryParams).toString()
+    const url = queryString
+      ? `${API_ENDPOINTS.subscriptions.transactions.list()}?${queryString}`
+      : API_ENDPOINTS.subscriptions.transactions.list()
+
+    const requestParams: IRequestParams = {
+      url,
+      method: 'GET',
+    }
+
+    const response = await makeRequest(requestParams)
     return response.data
   },
 
@@ -87,50 +139,42 @@ export const transactionsService = {
    * Get transaction by ID
    */
   getById: async (id: number): Promise<Transaction> => {
-    const response = await subscriptionApiClient.get(buildUrl(`${ENDPOINTS.transactions}${id}/`))
-    return response.data
-  },
+    const requestParams: IRequestParams = {
+      url: API_ENDPOINTS.subscriptions.transactions.detail(id),
+      method: 'GET',
+    }
 
-  /**
-   * Process refund (MOST IMPORTANT)
-   */
-  refund: async (id: number, data: RefundData): Promise<Transaction> => {
-    const response = await subscriptionApiClient.post(buildUrl(`${ENDPOINTS.transactions}${id}/refund/`), data)
-    return response.data
-  },
-
-  /**
-   * Mark transaction as completed
-   */
-  complete: async (id: number): Promise<Transaction> => {
-    const response = await subscriptionApiClient.post(buildUrl(`${ENDPOINTS.transactions}${id}/complete/`))
-    return response.data
-  },
-
-  /**
-   * Mark transaction as failed
-   */
-  fail: async (id: number, data: FailTransactionData): Promise<Transaction> => {
-    const response = await subscriptionApiClient.post(buildUrl(`${ENDPOINTS.transactions}${id}/fail/`), data)
-    return response.data
-  },
-
-  /**
-   * Cancel transaction
-   */
-  cancel: async (id: number, data: CancelTransactionData): Promise<Transaction> => {
-    const response = await subscriptionApiClient.post(
-      buildUrl(`${ENDPOINTS.transactions}${id}/cancel_transaction/`),
-      data,
-    )
+    const response = await makeRequest(requestParams)
     return response.data
   },
 
   /**
    * Get transaction statistics
+   * Returns aggregated statistics by status, type, and payment method
    */
-  getStatistics: async (): Promise<TransactionStatistics> => {
-    const response = await subscriptionApiClient.get(buildUrl('/subscriptions/admin/transactions/statistics/'))
+  getStatistics: async (filters: TransactionFilters = {}): Promise<TransactionStatistics> => {
+    // Build query string from filters (statistics endpoint respects filters)
+    const queryParams: Record<string, string> = {}
+
+    if (filters.user_id) queryParams.user_id = String(filters.user_id)
+    if (filters.status) queryParams.status = filters.status
+    if (filters.transaction_type) queryParams.transaction_type = filters.transaction_type
+    if (filters.payment_method) queryParams.payment_method = filters.payment_method
+    if (filters.date_from) queryParams.date_from = filters.date_from
+    if (filters.date_to) queryParams.date_to = filters.date_to
+    if (filters.search) queryParams.search = filters.search
+
+    const queryString = new URLSearchParams(queryParams).toString()
+    const url = queryString
+      ? `${API_ENDPOINTS.subscriptions.transactions.stats()}?${queryString}`
+      : API_ENDPOINTS.subscriptions.transactions.stats()
+
+    const requestParams: IRequestParams = {
+      url,
+      method: 'GET',
+    }
+
+    const response = await makeRequest(requestParams)
     return response.data
   },
 }

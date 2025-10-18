@@ -97,6 +97,13 @@ export default {
     //   },
     // },
     {
+      name: 'analytics-dashboard',
+      displayName: 'menu.analytics',
+      meta: {
+        icon: 'analytics',
+      },
+    },
+    {
       name: 'admin-users',
       displayName: 'menu.admin-users',
       meta: {
@@ -132,24 +139,80 @@ export default {
       },
       children: [
         {
-          name: 'subscriptions-dashboard',
-          displayName: 'menu.subscriptions-dashboard',
-        },
-        {
           name: 'plans',
           displayName: 'menu.plans',
         },
         {
           name: 'subscriptions-list',
-          displayName: 'menu.subscriptions-list',
+          displayName: 'menu.user-subscriptions',
         },
         {
           name: 'transactions',
           displayName: 'menu.transactions',
         },
+      ],
+    },
+    {
+      name: 'call-credits',
+      displayName: 'menu.call-credits',
+      meta: {
+        icon: 'call',
+      },
+      children: [
         {
-          name: 'wallets',
-          displayName: 'menu.wallets',
+          name: 'call-credits-analytics',
+          displayName: 'menu.analytics',
+        },
+        {
+          name: 'call-credit-bundles',
+          displayName: 'menu.bundles',
+        },
+        {
+          name: 'user-call-credits',
+          displayName: 'menu.user-credits',
+        },
+      ],
+    },
+    {
+      name: 'consultations',
+      displayName: 'menu.consultations',
+      meta: {
+        icon: 'groups',
+      },
+      children: [
+        {
+          name: 'consultants',
+          displayName: 'menu.consultants',
+        },
+        {
+          name: 'bookings',
+          displayName: 'menu.bookings',
+        },
+      ],
+    },
+    {
+      name: 'documents',
+      displayName: 'menu.documents',
+      meta: {
+        icon: 'description',
+      },
+      children: [
+        {
+          name: 'materials',
+          displayName: 'menu.materials',
+        },
+      ],
+    },
+    {
+      name: 'disbursements',
+      displayName: 'menu.disbursements',
+      meta: {
+        icon: 'payments',
+      },
+      children: [
+        {
+          name: 'consultant-earnings',
+          displayName: 'menu.earnings',
         },
       ],
     },

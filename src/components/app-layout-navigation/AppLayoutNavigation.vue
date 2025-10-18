@@ -8,7 +8,7 @@
     />
 
     <nav class="flex items-center">
-      <VaBreadcrumbs>
+      <VaBreadcrumbs v-if="items.length > 0">
         <VaBreadcrumbsItem label="Home" :to="{ name: 'dashboard' }" />
         <VaBreadcrumbsItem
           v-for="item in items"
@@ -64,17 +64,24 @@ const findRouteName = (name: string) => {
 
 const items = computed(() => {
   const result: { label: string; to: string; hasChildren: boolean }[] = []
-  route.matched.forEach((route) => {
-    const labelKey = findRouteName(route.name as string)
-    if (!labelKey) {
-      return
-    }
-    result.push({
-      label: t(labelKey),
-      to: route.path,
-      hasChildren: route.children && route.children.length > 0,
+  try {
+    route.matched.forEach((matchedRoute) => {
+      if (!matchedRoute || !matchedRoute.name) {
+        return
+      }
+      const labelKey = findRouteName(matchedRoute.name as string)
+      if (!labelKey) {
+        return
+      }
+      result.push({
+        label: t(labelKey),
+        to: matchedRoute.path || '',
+        hasChildren: !!(matchedRoute.children && matchedRoute.children.length > 0),
+      })
     })
-  })
+  } catch (error) {
+    console.error('Error building breadcrumbs:', error)
+  }
   return result
 })
 

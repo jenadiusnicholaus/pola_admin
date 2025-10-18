@@ -5,20 +5,24 @@
 
 import { ref, computed } from 'vue'
 import { useToast } from 'vuestic-ui'
-import { plansService, type SubscriptionPlan, type CreatePlanData, type PlanStatistics } from '../services/plansService'
+import {
+  plansService,
+  type SubscriptionPlan,
+  type CreatePlanData,
+  type SubscriptionStatistics,
+} from '../services/plansService'
 
 export function usePlans() {
   const { init: notify } = useToast()
 
   const plans = ref<SubscriptionPlan[]>([])
-  const statistics = ref<PlanStatistics | null>(null)
+  const subscriptionStatistics = ref<SubscriptionStatistics | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
   // Computed properties
   const activePlans = computed(() => plans.value.filter((plan) => plan.is_active))
   const inactivePlans = computed(() => plans.value.filter((plan) => !plan.is_active))
-  const popularPlans = computed(() => plans.value.filter((plan) => plan.is_popular))
 
   /**
    * Fetch all plans
@@ -40,17 +44,52 @@ export function usePlans() {
   }
 
   /**
-   * Fetch plan statistics
+   * Fetch subscription statistics (user-level)
    */
-  const fetchStatistics = async () => {
+  const fetchSubscriptionStatistics = async () => {
     try {
-      statistics.value = await plansService.getStatistics()
+      subscriptionStatistics.value = await plansService.getSubscriptionStatistics()
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to fetch statistics'
+      const errorMsg = err.response?.data?.detail || 'Failed to fetch subscription statistics'
       notify({
         message: errorMsg,
         color: 'danger',
       })
+    }
+  }
+
+  /**
+   * Fetch public plans (user-facing)
+   */
+  const fetchPublicPlans = async () => {
+    isLoading.value = true
+    error.value = null
+    try {
+      plans.value = await plansService.getPublicPlans()
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to fetch public plans'
+      notify({
+        message: error.value || 'Failed to fetch public plans',
+        color: 'danger',
+      })
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Fetch plan benefits
+   */
+  const fetchBenefits = async (language: 'en' | 'sw' = 'en', planId?: number) => {
+    try {
+      return await plansService.getBenefits(language, planId)
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.detail || 'Failed to fetch benefits'
+      notify({
+        message: errorMsg,
+        color: 'danger',
+      })
+      throw err
     }
   }
 
@@ -61,7 +100,9 @@ export function usePlans() {
     isLoading.value = true
     error.value = null
     try {
+      console.log('Creating plan with data:', planData)
       const newPlan = await plansService.create(planData)
+      console.log('Plan created successfully:', newPlan)
       plans.value.push(newPlan)
       notify({
         message: 'Plan created successfully',
@@ -69,7 +110,37 @@ export function usePlans() {
       })
       return newPlan
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to create plan'
+      console.error('Error creating plan:', err)
+      console.error('Error response:', err.response?.data)
+
+      // Handle validation errors (field-specific errors)
+      if (err.response?.data && typeof err.response.data === 'object') {
+        const errors = err.response.data
+        const errorMessages: string[] = []
+
+        // Collect all field errors
+        Object.keys(errors).forEach((field) => {
+          const fieldErrors = errors[field]
+          if (Array.isArray(fieldErrors)) {
+            fieldErrors.forEach((msg) => errorMessages.push(`${field}: ${msg}`))
+          } else if (typeof fieldErrors === 'string') {
+            errorMessages.push(`${field}: ${fieldErrors}`)
+          }
+        })
+
+        if (errorMessages.length > 0) {
+          error.value = errorMessages.join('\n')
+          notify({
+            message: errorMessages.join('<br>'),
+            color: 'danger',
+            duration: 6000, // Show longer for multiple errors
+          })
+          throw err
+        }
+      }
+
+      // Fallback to generic error
+      error.value = err.response?.data?.detail || err.response?.data?.message || 'Failed to create plan'
       notify({
         message: error.value || 'Failed to create plan',
         color: 'danger',
@@ -87,7 +158,9 @@ export function usePlans() {
     isLoading.value = true
     error.value = null
     try {
+      console.log('Updating plan', id, 'with data:', planData)
       const updatedPlan = await plansService.update(id, planData)
+      console.log('Plan updated successfully:', updatedPlan)
       const index = plans.value.findIndex((p) => p.id === id)
       if (index !== -1) {
         plans.value[index] = updatedPlan
@@ -98,7 +171,37 @@ export function usePlans() {
       })
       return updatedPlan
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to update plan'
+      console.error('Error updating plan:', err)
+      console.error('Error response:', err.response?.data)
+
+      // Handle validation errors (field-specific errors)
+      if (err.response?.data && typeof err.response.data === 'object') {
+        const errors = err.response.data
+        const errorMessages: string[] = []
+
+        // Collect all field errors
+        Object.keys(errors).forEach((field) => {
+          const fieldErrors = errors[field]
+          if (Array.isArray(fieldErrors)) {
+            fieldErrors.forEach((msg) => errorMessages.push(`${field}: ${msg}`))
+          } else if (typeof fieldErrors === 'string') {
+            errorMessages.push(`${field}: ${fieldErrors}`)
+          }
+        })
+
+        if (errorMessages.length > 0) {
+          error.value = errorMessages.join('\n')
+          notify({
+            message: errorMessages.join('<br>'),
+            color: 'danger',
+            duration: 6000, // Show longer for multiple errors
+          })
+          throw err
+        }
+      }
+
+      // Fallback to generic error
+      error.value = err.response?.data?.detail || err.response?.data?.message || 'Failed to update plan'
       notify({
         message: error.value || 'Failed to update plan',
         color: 'danger',
@@ -116,6 +219,7 @@ export function usePlans() {
     isLoading.value = true
     error.value = null
     try {
+      console.log('Deleting plan:', id)
       await plansService.delete(id)
       plans.value = plans.value.filter((p) => p.id !== id)
       notify({
@@ -123,7 +227,9 @@ export function usePlans() {
         color: 'success',
       })
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to delete plan'
+      console.error('Error deleting plan:', err)
+      console.error('Error response:', err.response?.data)
+      error.value = err.response?.data?.detail || err.response?.data?.message || 'Failed to delete plan'
       notify({
         message: error.value || 'Failed to delete plan',
         color: 'danger',
@@ -135,47 +241,22 @@ export function usePlans() {
   }
 
   /**
-   * Activate plan
+   * Toggle plan activation
    */
-  const activatePlan = async (id: number) => {
+  const toggleActivation = async (id: number, is_active: boolean) => {
     try {
-      const updatedPlan = await plansService.activate(id)
+      const updatedPlan = await plansService.toggleActivation(id, is_active)
       const index = plans.value.findIndex((p) => p.id === id)
       if (index !== -1) {
         plans.value[index] = updatedPlan
       }
       notify({
-        message: 'Plan activated successfully',
+        message: `Plan ${is_active ? 'activated' : 'deactivated'} successfully`,
         color: 'success',
       })
       return updatedPlan
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to activate plan'
-      notify({
-        message: errorMsg,
-        color: 'danger',
-      })
-      throw err
-    }
-  }
-
-  /**
-   * Deactivate plan
-   */
-  const deactivatePlan = async (id: number) => {
-    try {
-      const updatedPlan = await plansService.deactivate(id)
-      const index = plans.value.findIndex((p) => p.id === id)
-      if (index !== -1) {
-        plans.value[index] = updatedPlan
-      }
-      notify({
-        message: 'Plan deactivated successfully',
-        color: 'success',
-      })
-      return updatedPlan
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to deactivate plan'
+      const errorMsg = err.response?.data?.detail || 'Failed to toggle plan activation'
       notify({
         message: errorMsg,
         color: 'danger',
@@ -187,22 +268,22 @@ export function usePlans() {
   return {
     // State
     plans,
-    statistics,
+    subscriptionStatistics,
     isLoading,
     error,
 
     // Computed
     activePlans,
     inactivePlans,
-    popularPlans,
 
     // Methods
     fetchPlans,
-    fetchStatistics,
+    fetchPublicPlans,
+    fetchBenefits,
+    fetchSubscriptionStatistics,
     createPlan,
     updatePlan,
     deletePlan,
-    activatePlan,
-    deactivatePlan,
+    toggleActivation,
   }
 }

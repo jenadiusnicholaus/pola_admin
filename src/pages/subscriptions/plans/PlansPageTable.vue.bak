@@ -1,0 +1,348 @@
+<template>
+  <div class="plans-page">
+    <h1 class="page-title">Subscription Plans</h1>
+
+    <!-- Actions Bar -->
+    <VaCard class="mb-4">
+      <VaCardContent>
+        <div class="actions-bar">
+          <VaButton icon="add" @click="openCreateModal">Create New Plan</VaButton>
+          <VaButton icon="refresh" preset="secondary" @click="fetchPlans">Refresh</VaButton>
+        </div>
+      </VaCardContent>
+    </VaCard>
+
+    <!-- Statistics -->
+    <div v-if="statistics" class="stats-grid mb-4">
+      <VaCard>
+        <VaCardContent>
+          <div class="stat-item">
+            <VaIcon name="inventory" color="primary" size="large" />
+            <div class="stat-content">
+              <div class="stat-label">Total Plans</div>
+              <div class="stat-value">{{ statistics.total_plans }}</div>
+            </div>
+          </div>
+        </VaCardContent>
+      </VaCard>
+
+      <VaCard>
+        <VaCardContent>
+          <div class="stat-item">
+            <VaIcon name="check_circle" color="success" size="large" />
+            <div class="stat-content">
+              <div class="stat-label">Active Plans</div>
+              <div class="stat-value">{{ statistics.active_plans }}</div>
+            </div>
+          </div>
+        </VaCardContent>
+      </VaCard>
+
+      <VaCard>
+        <VaCardContent>
+          <div class="stat-item">
+            <VaIcon name="people" color="info" size="large" />
+            <div class="stat-content">
+              <div class="stat-label">Total Subscribers</div>
+              <div class="stat-value">{{ statistics.total_subscribers }}</div>
+            </div>
+          </div>
+        </VaCardContent>
+      </VaCard>
+
+      <VaCard>
+        <VaCardContent>
+          <div class="stat-item">
+            <VaIcon name="payments" color="success" size="large" />
+            <div class="stat-content">
+              <div class="stat-label">Total Revenue</div>
+              <div class="stat-value">{{ formatCurrency(statistics.total_revenue) }}</div>
+            </div>
+          </div>
+        </VaCardContent>
+      </VaCard>
+    </div>
+
+    <!-- Plans Table -->
+    <VaCard>
+      <VaCardContent>
+        <VaInnerLoading :loading="isLoading">
+          <VaDataTable :items="plans" :columns="columns" hoverable>
+            <template #cell(price)="{ rowData }">
+              <span class="text-success font-semibold">{{ formatCurrency(rowData.price) }}</span>
+            </template>
+
+            <template #cell(plan_type)="{ rowData }">
+              <VaBadge :text="rowData.plan_type" color="primary" />
+            </template>
+
+            <template #cell(duration_days)="{ rowData }"> {{ rowData.duration_days }} days </template>
+
+            <template #cell(is_active)="{ rowData }">
+              <VaBadge
+                :text="rowData.is_active ? 'Active' : 'Inactive'"
+                :color="rowData.is_active ? 'success' : 'danger'"
+              />
+            </template>
+
+            <template #cell(total_subscribers)="{ rowData }">
+              <span class="text-info">{{ rowData.total_subscribers || 0 }}</span>
+            </template>
+
+            <template #cell(total_revenue)="{ rowData }">
+              <span class="text-success">{{ formatCurrency(rowData.total_revenue || '0') }}</span>
+            </template>
+
+            <template #cell(actions)="{ rowData }">
+              <div class="actions-cell">
+                <VaButton size="small" preset="plain" icon="edit" @click="openEditModal(rowData)" />
+                <VaButton
+                  size="small"
+                  preset="plain"
+                  :icon="rowData.is_active ? 'block' : 'check_circle'"
+                  :color="rowData.is_active ? 'warning' : 'success'"
+                  @click="togglePlanActivation(rowData)"
+                />
+                <VaButton size="small" preset="plain" icon="delete" color="danger" @click="confirmDelete(rowData)" />
+              </div>
+            </template>
+          </VaDataTable>
+        </VaInnerLoading>
+      </VaCardContent>
+    </VaCard>
+
+    <!-- Create/Edit Modal -->
+    <VaModal v-model="showModal" :title="isEditMode ? 'Edit Plan' : 'Create Plan'" size="medium" @ok="handleSave">
+      <VaForm ref="formRef">
+        <VaInput v-model="form.name" label="Plan Name" :rules="[(v) => !!v || 'Name is required']" />
+
+        <VaTextarea v-model="form.description" label="Description" />
+
+        <VaSelect
+          v-model="form.plan_type"
+          label="Plan Type"
+          :options="['monthly', 'yearly', 'lifetime']"
+          :rules="[(v) => !!v || 'Plan type is required']"
+        />
+
+        <VaInput v-model="form.price" label="Price (TSh)" type="number" :rules="[(v) => !!v || 'Price is required']" />
+
+        <VaInput
+          v-model="form.duration_days"
+          label="Duration (days)"
+          type="number"
+          :rules="[(v) => !!v || 'Duration is required']"
+        />
+
+        <VaCheckbox v-model="form.is_active" label="Active" />
+      </VaForm>
+    </VaModal>
+
+    <!-- Delete Confirmation Modal -->
+    <VaModal v-model="showDeleteModal" title="Confirm Delete" size="small" @ok="handleDelete">
+      <p>Are you sure you want to delete the plan "{{ deletingPlan?.name }}"?</p>
+      <p class="text-danger">This action cannot be undone.</p>
+    </VaModal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { usePlans } from '../../../composables/usePlans'
+import type { SubscriptionPlan } from '../../../services/plansService'
+
+const {
+  plans,
+  statistics,
+  isLoading,
+  fetchPlans,
+  fetchStatistics,
+  createPlan,
+  updatePlan,
+  deletePlan,
+  toggleActivation,
+} = usePlans()
+
+const showModal = ref(false)
+const showDeleteModal = ref(false)
+const isEditMode = ref(false)
+const editingPlanId = ref<number | null>(null)
+const deletingPlan = ref<SubscriptionPlan | null>(null)
+const formRef = ref()
+
+const form = ref({
+  name: '',
+  description: '',
+  plan_type: 'monthly',
+  price: '',
+  duration_days: 30,
+  is_active: true,
+})
+
+const columns = [
+  { key: 'name', label: 'Name', sortable: true },
+  { key: 'plan_type', label: 'Type', sortable: true },
+  { key: 'price', label: 'Price', sortable: true },
+  { key: 'duration_days', label: 'Duration', sortable: true },
+  { key: 'total_subscribers', label: 'Subscribers', sortable: true },
+  { key: 'total_revenue', label: 'Revenue', sortable: true },
+  { key: 'is_active', label: 'Status', sortable: true },
+  { key: 'actions', label: 'Actions', width: 120 },
+]
+
+onMounted(async () => {
+  await fetchPlans()
+  await fetchStatistics()
+})
+
+const openCreateModal = () => {
+  isEditMode.value = false
+  editingPlanId.value = null
+  form.value = {
+    name: '',
+    description: '',
+    plan_type: 'monthly',
+    price: '',
+    duration_days: 30,
+    is_active: true,
+  }
+  showModal.value = true
+}
+
+const openEditModal = (plan: SubscriptionPlan) => {
+  isEditMode.value = true
+  editingPlanId.value = plan.id
+  form.value = {
+    name: plan.name,
+    description: plan.description,
+    plan_type: plan.plan_type,
+    price: plan.price,
+    duration_days: plan.duration_days,
+    is_active: plan.is_active,
+  }
+  showModal.value = true
+}
+
+const handleSave = async () => {
+  if (!formRef.value?.validate()) return
+
+  try {
+    if (isEditMode.value && editingPlanId.value) {
+      await updatePlan(editingPlanId.value, form.value)
+    } else {
+      await createPlan(form.value)
+    }
+    showModal.value = false
+    await fetchStatistics()
+  } catch (error) {
+    // Error handled in composable
+  }
+}
+
+const togglePlanActivation = async (plan: SubscriptionPlan) => {
+  try {
+    await toggleActivation(plan.id, !plan.is_active)
+    await fetchStatistics()
+  } catch (error) {
+    // Error handled in composable
+  }
+}
+
+const confirmDelete = (plan: SubscriptionPlan) => {
+  deletingPlan.value = plan
+  showDeleteModal.value = true
+}
+
+const handleDelete = async () => {
+  if (!deletingPlan.value) return
+
+  try {
+    await deletePlan(deletingPlan.value.id)
+    showDeleteModal.value = false
+    deletingPlan.value = null
+    await fetchStatistics()
+  } catch (error) {
+    // Error handled in composable
+  }
+}
+
+const formatCurrency = (value: string | number): string => {
+  const amount = typeof value === 'string' ? parseFloat(value) : value
+  return `TSh ${amount.toLocaleString('en-TZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+</script>
+
+<style scoped>
+.plans-page {
+  padding: 1rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.actions-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--va-text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mb-4 {
+  margin-bottom: 1.5rem;
+}
+
+.text-success {
+  color: var(--va-success);
+}
+
+.text-info {
+  color: var(--va-info);
+}
+
+.text-danger {
+  color: var(--va-danger);
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+</style>

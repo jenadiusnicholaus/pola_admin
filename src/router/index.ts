@@ -4,7 +4,7 @@ import AuthLayout from '../layouts/AuthLayout.vue'
 import AppLayout from '../layouts/AppLayout.vue'
 
 import RouteViewComponent from '../layouts/RouterBypass.vue'
-import { adminAuthGuard, userAuthGuard } from './guards'
+import { userAuthGuard } from './guards'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -34,60 +34,19 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../pages/preferences/Preferences.vue'),
       },
       {
+        name: 'analytics-dashboard',
+        path: 'analytics',
+        component: () => import('../pages/admin/AnalyticsDashboardPage.vue'),
+      },
+      {
         name: 'admin-users',
         path: 'admin-users',
         component: () => import('../pages/users/AdminUsersPage.vue'),
-        beforeEnter: adminAuthGuard,
-      },
-      {
-        name: 'projects',
-        path: 'projects',
-        component: () => import('../pages/projects/ProjectsPage.vue'),
-      },
-      {
-        name: 'payments',
-        path: '/payments',
-        component: RouteViewComponent,
-        children: [
-          {
-            name: 'billing',
-            path: 'billing',
-            component: () => import('../pages/billing/BillingPage.vue'),
-          },
-          {
-            name: 'pricing-plans',
-            path: 'pricing-plans',
-            component: () => import('../pages/pricing-plans/PricingPlans.vue'),
-          },
-        ],
-      },
-      {
-        name: 'faq',
-        path: '/faq',
-        component: () => import('../pages/faq/FaqPage.vue'),
-      },
-      {
-        name: 'user',
-        path: '/user',
-        component: RouteViewComponent,
-        children: [
-          {
-            name: 'user-profile',
-            path: 'profile',
-            component: () => import('../pages/user/UserProfile.vue'),
-          },
-          {
-            name: 'user-verification',
-            path: 'verification',
-            component: () => import('../pages/user/UserVerificationPage.vue'),
-          },
-        ],
       },
       {
         name: 'admin-verification',
-        path: '/admin-verification',
+        path: 'admin-verification',
         component: RouteViewComponent,
-        beforeEnter: adminAuthGuard,
         children: [
           {
             name: 'verification-dashboard',
@@ -113,14 +72,9 @@ const routes: Array<RouteRecordRaw> = [
       },
       {
         name: 'subscriptions',
-        path: '/subscriptions',
+        path: 'subscriptions',
         component: RouteViewComponent,
         children: [
-          {
-            name: 'subscriptions-dashboard',
-            path: 'dashboard',
-            component: () => import('../pages/subscriptions/SubscriptionsDashboard.vue'),
-          },
           {
             name: 'plans',
             path: 'plans',
@@ -136,10 +90,69 @@ const routes: Array<RouteRecordRaw> = [
             path: 'transactions',
             component: () => import('../pages/subscriptions/transactions/TransactionsPage.vue'),
           },
+        ],
+      },
+      {
+        name: 'call-credits',
+        path: 'call-credits',
+        component: RouteViewComponent,
+        redirect: { name: 'call-credits-analytics' },
+        children: [
           {
-            name: 'wallets',
-            path: 'wallets',
-            component: () => import('../pages/subscriptions/wallets/WalletsPage.vue'),
+            name: 'call-credits-analytics',
+            path: 'analytics',
+            component: () => import('../pages/call-credits/CallCreditsAnalyticsPage.vue'),
+          },
+          {
+            name: 'call-credit-bundles',
+            path: 'bundles',
+            component: () => import('../pages/call-credits/CallCreditBundlesPage.vue'),
+          },
+          {
+            name: 'user-call-credits',
+            path: 'user-credits',
+            component: () => import('../pages/call-credits/UserCallCreditsPage.vue'),
+          },
+        ],
+      },
+      {
+        name: 'consultations',
+        path: 'consultations',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'consultants',
+            path: 'consultants',
+            component: () => import('../pages/consultations/ConsultantsPage.vue'),
+          },
+          {
+            name: 'bookings',
+            path: 'bookings',
+            component: () => import('../pages/consultations/BookingsPage.vue'),
+          },
+        ],
+      },
+      {
+        name: 'documents',
+        path: 'documents',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'materials',
+            path: 'materials',
+            component: () => import('../pages/documents/MaterialsPage.vue'),
+          },
+        ],
+      },
+      {
+        name: 'disbursements',
+        path: 'disbursements',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'consultant-earnings',
+            path: 'consultant-earnings',
+            component: () => import('../pages/disbursements/ConsultantEarningsPage.vue'),
           },
         ],
       },

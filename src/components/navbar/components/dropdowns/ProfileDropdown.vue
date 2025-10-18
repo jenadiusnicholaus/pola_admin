@@ -5,7 +5,7 @@
         <VaButton preset="secondary" color="textPrimary">
           <span class="profile-dropdown__anchor min-w-max">
             <slot />
-            <VaAvatar :size="32" :src="profile?.profile_picture || undefined" color="primary">
+            <VaAvatar :size="32" :src="profile?.profile_picture || undefined" color="primary" class="profile-avatar">
               <template v-if="!profile?.profile_picture">
                 {{ getInitials() }}
               </template>
@@ -188,6 +188,11 @@ onMounted(async () => {
   &__anchor {
     display: inline-block;
   }
+}
+
+.profile-avatar {
+  font-size: 0.75rem !important;
+  font-weight: 600;
 }
 
 .profile-info-header {
