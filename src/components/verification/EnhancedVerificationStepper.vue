@@ -22,8 +22,8 @@
       >
         <div class="step-marker">
           <div class="step-number">
-            <VaIcon v-if="isStepCompleted(step.key)" name="check" size="small" color="white" />
-            <VaIcon v-else-if="isCurrentStep(step.key)" name="play_arrow" size="small" color="white" />
+            <VaIcon v-if="isStepCompleted(step.key)" name="check" size="small" />
+            <VaIcon v-else-if="isCurrentStep(step.key)" name="play_arrow" size="small" />
             <span v-else class="step-index">{{ index + 1 }}</span>
           </div>
         </div>
@@ -89,6 +89,26 @@
                     <VaChip v-if="!doc.uploaded" color="danger" size="small" class="missing-doc-chip">
                       NOT UPLOADED
                     </VaChip>
+                    <div v-if="doc.uploaded && doc.status === 'pending'" class="doc-inline-actions">
+                      <VaButton
+                        size="small"
+                        color="success"
+                        icon="check"
+                        round
+                        class="doc-action-btn"
+                        :loading="isApprovingDocument === doc.document_id"
+                        @click="approveDocument({ id: doc.document_id, title: doc.label })"
+                      />
+                      <VaButton
+                        size="small"
+                        preset="plain"
+                        icon="visibility"
+                        color="primary"
+                        round
+                        class="doc-action-btn"
+                        @click="viewDocument({ id: doc.document_id, title: doc.label })"
+                      />
+                    </div>
                   </div>
                 </template>
 
@@ -146,32 +166,85 @@
                     </div>
                     <div class="mini-doc-actions">
                       <VaButton
+                        v-if="document.verification_status === 'pending'"
+                        size="small"
+                        color="success"
+                        icon="check"
+                        round
+                        class="doc-action-btn"
+                        :loading="isApprovingDocument === document.id"
+                        @click="approveDocument(document)"
+                      />
+                      <VaButton
                         size="small"
                         preset="plain"
                         icon="visibility"
                         color="primary"
+                        round
+                        class="doc-action-btn"
                         @click="viewDocument(document)"
-                      >
-                      </VaButton>
+                      />
                     </div>
                   </div>
                 </div>
               </div>
+
+              <!-- Document Step Details and Action Buttons -->
+              <VerificationStepDetails
+                v-if="hasStepData('documents')"
+                :step-data="getStepData('documents')"
+                step-key="documents"
+                :verification="props.verification || currentUser"
+                @accept="handleAcceptStep"
+                @reject="handleRejectStep"
+              />
             </div>
             <div v-else-if="step.key === 'identity'" class="verification-checklist">
-              <RequirementsChecklist title="Identity Information Check" :items="getIdentityFields()" />
+              <!-- Comprehensive Step Details -->
+              <VerificationStepDetails
+                v-if="hasStepData('identity')"
+                :step-data="getStepData('identity')"
+                step-key="identity"
+                :verification="props.verification || currentUser"
+                @accept="handleAcceptStep"
+                @reject="handleRejectStep"
+              />
             </div>
 
             <div v-else-if="step.key === 'contact'" class="verification-checklist">
-              <RequirementsChecklist title="Contact Information Check" :items="getContactInfo()" />
+              <!-- Comprehensive Step Details -->
+              <VerificationStepDetails
+                v-if="hasStepData('contact')"
+                :step-data="getStepData('contact')"
+                step-key="contact"
+                :verification="props.verification || currentUser"
+                @accept="handleAcceptStep"
+                @reject="handleRejectStep"
+              />
             </div>
 
             <div v-else-if="step.key === 'role_specific'" class="verification-checklist">
-              <RequirementsChecklist title="Professional Requirements Check" :items="getRoleSpecificRequirements()" />
+              <!-- Comprehensive Step Details -->
+              <VerificationStepDetails
+                v-if="hasStepData('role_specific')"
+                :step-data="getStepData('role_specific')"
+                step-key="role_specific"
+                :verification="props.verification || currentUser"
+                @accept="handleAcceptStep"
+                @reject="handleRejectStep"
+              />
             </div>
 
             <div v-else-if="step.key === 'final'" class="verification-checklist">
-              <RequirementsChecklist title="Final Review Checklist" :items="getFinalChecklist()" />
+              <!-- Comprehensive Step Details -->
+              <VerificationStepDetails
+                v-if="hasStepData('final')"
+                :step-data="getStepData('final')"
+                step-key="final"
+                :verification="props.verification || currentUser"
+                @accept="handleAcceptStep"
+                @reject="handleRejectStep"
+              />
             </div>
           </div>
 
@@ -179,24 +252,6 @@
             <VaBadge v-if="isStepCompleted(step.key)" color="success" size="small"> Completed </VaBadge>
             <VaBadge v-else-if="isCurrentStep(step.key)" color="primary" size="small"> In Progress </VaBadge>
             <VaBadge v-else color="secondary" size="small"> Pending </VaBadge>
-          </div>
-
-          <!-- Step Actions -->
-          <div v-if="isCurrentStep(step.key)" class="step-actions">
-            <VaButton
-              v-if="canVerifyStep(step.key)"
-              color="success"
-              size="small"
-              icon="check"
-              :loading="isVerifying"
-              @click="verifyCurrentStep"
-            >
-              Verify & Continue
-            </VaButton>
-
-            <VaButton color="danger" size="small" icon="close" preset="outline" @click="showRejectDialog = true">
-              Reject Step
-            </VaButton>
           </div>
         </div>
 
@@ -254,6 +309,129 @@
       placeholder="Please provide a detailed reason for rejecting this document..."
       @confirm="confirmRejectDocument"
     />
+
+    <!-- Document Viewer Modal -->
+    <VaModal
+      v-model="showDocumentViewer"
+      :title="`Document Preview - ${selectedDocument?.title || 'Document'}`"
+      size="large"
+      @close="showDocumentViewer = false"
+    >
+      <div v-if="selectedDocument" class="document-viewer">
+        <!-- Document Information -->
+        <div class="document-info-section">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Type:</span>
+              <span class="value">{{ selectedDocument.document_type_display || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Status:</span>
+              <VaBadge
+                :color="getDocumentStatusColor(selectedDocument.verification_status || selectedDocument.status)"
+                :text="selectedDocument.verification_status_display || selectedDocument.status || 'Pending'"
+              />
+            </div>
+            <div class="info-item">
+              <span class="label">Uploaded:</span>
+              <span class="value">{{ formatDocumentDate(selectedDocument.created_at) }}</span>
+            </div>
+          </div>
+          <div v-if="selectedDocument.description" class="document-description">
+            <span class="label">Description:</span>
+            <p>{{ selectedDocument.description }}</p>
+          </div>
+        </div>
+
+        <!-- Document Preview -->
+        <div class="document-preview-section">
+          <h3>Document Preview</h3>
+          <div class="preview-container">
+            <div v-if="getDocumentUrl(selectedDocument)" class="preview-wrapper">
+              <!-- PDF Preview -->
+              <div v-if="isPdfFile(getDocumentUrl(selectedDocument))" class="pdf-preview-container">
+                <!-- Try object embed first -->
+                <object
+                  :data="getDocumentUrl(selectedDocument)"
+                  type="application/pdf"
+                  width="100%"
+                  height="600px"
+                  class="document-pdf-object"
+                >
+                  <!-- Fallback if object fails -->
+                  <div class="pdf-fallback">
+                    <VaIcon name="picture_as_pdf" size="4rem" color="danger" />
+                    <p class="fallback-title">PDF Preview Not Available</p>
+                    <p class="fallback-message">
+                      Your browser cannot display PDFs inline. Please use one of the options below:
+                    </p>
+                    <div class="fallback-actions">
+                      <VaButton color="primary" @click="openInNewTab(selectedDocument)">
+                        <VaIcon name="open_in_new" /> Open in New Tab
+                      </VaButton>
+                      <VaButton color="secondary" @click="downloadDocument(selectedDocument)">
+                        <VaIcon name="download" /> Download PDF
+                      </VaButton>
+                    </div>
+                  </div>
+                </object>
+              </div>
+              <!-- Image Preview -->
+              <img
+                v-else-if="isImageFile(getDocumentUrl(selectedDocument))"
+                :src="getDocumentUrl(selectedDocument)"
+                :alt="selectedDocument.title"
+                class="document-image"
+                @error="handleImageError"
+              />
+              <!-- Fallback for Other Files -->
+              <div v-else class="file-preview">
+                <VaIcon name="description" size="4rem" color="primary" />
+                <p class="file-name">{{ selectedDocument.title }}</p>
+                <p class="file-type">{{ getFileExtension(getDocumentUrl(selectedDocument)).toUpperCase() }} File</p>
+                <VaButton color="primary" @click="downloadDocument(selectedDocument)">
+                  <VaIcon name="download" /> Download to View
+                </VaButton>
+              </div>
+            </div>
+            <div v-else class="no-preview">
+              <VaIcon name="description" size="4rem" color="secondary" />
+              <p>No preview available</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Document Actions -->
+        <div class="document-actions-section">
+          <div class="action-buttons">
+            <VaButton
+              v-if="selectedDocument.verification_status === 'pending' || selectedDocument.status === 'pending'"
+              color="success"
+              icon="check"
+              :loading="isApprovingDocument === (selectedDocument.id || selectedDocument.document_id)"
+              @click="approveDocument(selectedDocument)"
+            >
+              Approve Document
+            </VaButton>
+            <VaButton
+              v-if="selectedDocument.verification_status === 'pending' || selectedDocument.status === 'pending'"
+              color="danger"
+              icon="close"
+              @click="openRejectDocumentDialog(selectedDocument)"
+            >
+              Reject Document
+            </VaButton>
+            <VaButton color="primary" icon="open_in_new" @click="openInNewTab(selectedDocument)">
+              Open in New Tab
+            </VaButton>
+            <VaButton color="secondary" icon="download" @click="downloadDocument(selectedDocument)">
+              Download
+            </VaButton>
+            <VaButton preset="secondary" @click="showDocumentViewer = false"> Close </VaButton>
+          </div>
+        </div>
+      </div>
+    </VaModal>
   </div>
 </template>
 
@@ -265,8 +443,8 @@ import type { VerificationUser } from '../../services/verificationService'
 import VerificationProgressBar from './VerificationProgressBar.vue'
 import DocumentCard from './DocumentCard.vue'
 import DocumentsStatusSummary from './DocumentsStatusSummary.vue'
-import RequirementsChecklist from './RequirementsChecklist.vue'
 import RejectDialog from './RejectDialog.vue'
+import VerificationStepDetails from './VerificationStepDetails.vue'
 
 interface Props {
   userId: string | number
@@ -283,6 +461,7 @@ const isCompleting = ref(false)
 const currentUser = ref<VerificationUser | null>(null)
 const showRejectDialog = ref(false)
 const rejectReason = ref('')
+const currentRejectingStep = ref('')
 const showDocumentViewer = ref(false)
 const selectedDocument = ref<any>(null)
 
@@ -377,25 +556,36 @@ const canCompleteVerification = () => {
   return getCurrentStep() === 'final' && currentProgress.value >= 80
 }
 
-const canVerifyStep = (stepKey: string) => {
-  const requirements = getStepRequirements(stepKey)
-  return requirements.every((req: any) => req.verified || req.passed)
+// Helper functions for VerificationStepDetails component
+const hasStepData = (stepKey: string) => {
+  const user = props.verification || currentUser.value
+  return user?.missing_information?.by_step?.[stepKey] !== undefined
 }
 
-const getStepRequirements = (stepKey: string): any[] => {
-  switch (stepKey) {
-    case 'documents':
-      return getRequiredDocuments()
-    case 'identity':
-      return getIdentityFields()
-    case 'contact':
-      return getContactInfo()
-    case 'role_specific':
-      return getRoleSpecificRequirements()
-    case 'final':
-      return getFinalChecklist()
-    default:
-      return []
+const getStepData = (stepKey: string) => {
+  const user = props.verification || currentUser.value
+  const stepData = user?.missing_information?.by_step?.[stepKey]
+
+  // Return with required defaults if data exists
+  if (stepData) {
+    return {
+      status: stepData.status || 'incomplete',
+      is_current: stepData.is_current || false,
+      issues: stepData.issues || [],
+      required_fields: stepData.required_fields || [],
+      verified_fields: stepData.verified_fields || [],
+      missing_documents: stepData.missing_documents || [],
+      missing_profile_fields: stepData.missing_profile_fields || [],
+    }
+  }
+
+  // Return safe defaults
+  return {
+    status: 'incomplete',
+    is_current: false,
+    issues: [],
+    required_fields: [],
+    verified_fields: [],
   }
 }
 
@@ -455,201 +645,6 @@ const getRequiredDocuments = () => {
   }
 
   return allDocs
-}
-
-const getIdentityFields = () => {
-  const user = props.verification || currentUser.value
-  if (!user) return []
-
-  const role = user.user_role?.value || 'citizen'
-
-  const baseFields = [
-    {
-      key: 'name',
-      label: 'Full Name',
-      value: user.user_name,
-      verified: !!user.user_name,
-    },
-    {
-      key: 'email',
-      label: 'Email Address',
-      value: user.user_email,
-      verified: !!user.user_email,
-    },
-  ]
-
-  // Role-specific identity requirements
-  const roleSpecificFields = {
-    advocate: [
-      {
-        key: 'roll_number',
-        label: 'Roll Number',
-        value: '(From documents)',
-        verified: user.documents_summary?.verified > 0,
-      },
-    ],
-    lawyer: [
-      {
-        key: 'bar_number',
-        label: 'Bar Membership Number',
-        value: '(From documents)',
-        verified: user.documents_summary?.verified > 0,
-      },
-    ],
-    law_firm: [
-      {
-        key: 'firm_name',
-        label: 'Firm Name',
-        value: '(From documents)',
-        verified: user.documents_summary?.verified > 0,
-      },
-    ],
-  }
-
-  return [...baseFields, ...(roleSpecificFields[role as keyof typeof roleSpecificFields] || [])]
-}
-
-const getContactInfo = () => {
-  const user = props.verification || currentUser.value
-  if (!user) return []
-
-  return [
-    {
-      type: 'phone',
-      label: 'Phone Number',
-      value: user.user_phone,
-      verified: !!user.user_phone && user.user_phone.length >= 10,
-    },
-    {
-      type: 'email',
-      label: 'Email Address',
-      value: user.user_email,
-      verified: !!user.user_email && user.user_email.includes('@'),
-    },
-    {
-      type: 'address',
-      label: 'Physical Address',
-      value: user.user_address ? `${user.user_address.street}, ${user.user_address.city}` : 'Not provided',
-      verified: !!user.user_address?.street,
-    },
-  ]
-}
-
-const getRoleSpecificRequirements = () => {
-  const user = props.verification || currentUser.value
-  if (!user) return []
-
-  const role = user.user_role?.value || 'citizen'
-
-  const roleRequirements = {
-    advocate: [
-      {
-        key: 'roll_number',
-        label: 'Valid Roll Number',
-        value: 'Verified from documents',
-        verified: user.documents_summary?.verified >= 2,
-      },
-      {
-        key: 'chamber_membership',
-        label: 'Chamber Membership',
-        value: 'Active membership required',
-        verified: user.documents_summary?.verified >= 3,
-      },
-    ],
-    lawyer: [
-      {
-        key: 'bar_admission',
-        label: 'Bar Admission',
-        value: 'Valid bar admission',
-        verified: user.documents_summary?.verified >= 2,
-      },
-      {
-        key: 'practice_license',
-        label: 'Practice License',
-        value: 'Current license',
-        verified: user.documents_summary?.verified >= 2,
-      },
-    ],
-    paralegal: [
-      {
-        key: 'certification',
-        label: 'Paralegal Certification',
-        value: 'Valid certification',
-        verified: user.documents_summary?.verified >= 1,
-      },
-      {
-        key: 'employment',
-        label: 'Employment Verification',
-        value: 'Current employment',
-        verified: user.documents_summary?.verified >= 2,
-      },
-    ],
-    law_firm: [
-      {
-        key: 'business_license',
-        label: 'Business License',
-        value: 'Valid business license',
-        verified: user.documents_summary?.verified >= 1,
-      },
-      {
-        key: 'firm_registration',
-        label: 'Firm Registration',
-        value: 'Proper registration',
-        verified: user.documents_summary?.verified >= 2,
-      },
-    ],
-    law_student: [
-      {
-        key: 'enrollment',
-        label: 'Student Enrollment',
-        value: 'Current enrollment',
-        verified: user.documents_summary?.verified >= 1,
-      },
-    ],
-    citizen: [
-      {
-        key: 'identity_verification',
-        label: 'Identity Verification',
-        value: 'Basic identity confirmed',
-        verified: user.documents_summary?.verified >= 1,
-      },
-    ],
-  }
-
-  return roleRequirements[role as keyof typeof roleRequirements] || roleRequirements.citizen
-}
-
-const getFinalChecklist = () => {
-  const user = props.verification || currentUser.value
-  if (!user) return []
-
-  return [
-    {
-      key: 'documents_complete',
-      label: 'All required documents verified',
-      passed: user.documents_summary?.verified >= 2,
-    },
-    {
-      key: 'identity_confirmed',
-      label: 'Identity information confirmed',
-      passed: !!user.user_name && !!user.user_email,
-    },
-    {
-      key: 'contact_verified',
-      label: 'Contact information verified',
-      passed: !!user.user_phone && !!user.user_email,
-    },
-    {
-      key: 'role_requirements',
-      label: 'Role-specific requirements met',
-      passed: user.documents_summary?.verified >= 1,
-    },
-    {
-      key: 'no_red_flags',
-      label: 'No verification issues found',
-      passed: user.documents_summary?.rejected === 0,
-    },
-  ]
 }
 
 const hasUploadedDocuments = () => {
@@ -761,6 +756,71 @@ const viewDocument = (document: any) => {
   showDocumentViewer.value = true
   // Emit event to parent to handle document viewing
   emit('documentView', document)
+}
+
+// Document Preview Helper Functions
+const getDocumentUrl = (document: any): string => {
+  return document?.file_url || document?.file || ''
+}
+
+const isPdfFile = (url: string): boolean => {
+  if (!url) return false
+  return url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('application/pdf')
+}
+
+const isImageFile = (url: string): boolean => {
+  if (!url) return false
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']
+  return imageExtensions.some((ext) => url.toLowerCase().includes(ext))
+}
+
+const getFileExtension = (url: string): string => {
+  if (!url) return 'file'
+  const match = url.match(/\.([a-zA-Z0-9]+)(?:\?|$)/)
+  return match ? match[1] : 'file'
+}
+
+const downloadDocument = (document: any) => {
+  const url = getDocumentUrl(document)
+  if (url) {
+    window.open(url, '_blank')
+  } else {
+    showToast({
+      message: 'Document URL not available',
+      color: 'danger',
+    })
+  }
+}
+
+const openInNewTab = (document: any) => {
+  const url = getDocumentUrl(document)
+  if (url) {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  } else {
+    showToast({
+      message: 'Document URL not available',
+      color: 'danger',
+    })
+  }
+}
+
+const handleImageError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  target.style.display = 'none'
+  const container = target.parentElement
+  if (container) {
+    container.innerHTML = `
+      <div class="file-preview">
+        <i class="va-icon material-icons" style="font-size: 4rem; color: var(--va-danger)">broken_image</i>
+        <p class="file-name">Failed to load image</p>
+        <p class="file-type">The image could not be displayed</p>
+      </div>
+    `
+  }
+  showToast({
+    message: 'Failed to load image preview',
+    color: 'warning',
+  })
 }
 
 const getProvidedDocumentsCount = () => {
@@ -900,17 +960,19 @@ const confirmRejectStep = async () => {
   }
 
   try {
-    const currentStep = getCurrentStep()
-    await verificationStore.rejectStep(Number(props.userId), currentStep, rejectReason.value)
+    // Use currentRejectingStep if set, otherwise fall back to getCurrentStep
+    const stepToReject = currentRejectingStep.value || getCurrentStep()
+    await verificationStore.rejectStep(Number(props.userId), stepToReject, rejectReason.value)
 
     showToast({
-      message: `${getCurrentStepDisplay()} rejected successfully`,
+      message: `${stepToReject.replace('_', ' ')} step rejected successfully`,
       color: 'success',
       duration: 3000,
     })
 
     showRejectDialog.value = false
     rejectReason.value = ''
+    currentRejectingStep.value = ''
     emit('refreshNeeded')
   } catch (error) {
     console.error('Error rejecting step:', error)
@@ -920,6 +982,44 @@ const confirmRejectStep = async () => {
       duration: 4000,
     })
   }
+}
+
+// Step action handlers from VerificationStepDetails component
+const handleAcceptStep = async (stepKey: string) => {
+  if (isVerifying.value) return
+
+  isVerifying.value = true
+
+  try {
+    await verificationStore.verifyStep(Number(props.userId), stepKey, `Step ${stepKey} accepted by admin`)
+
+    showToast({
+      message: `${stepKey.replace('_', ' ')} step accepted successfully!`,
+      color: 'success',
+      duration: 3000,
+      position: 'top-right',
+    })
+
+    // Emit events to parent
+    emit('verified', stepKey)
+    emit('refreshNeeded')
+  } catch (error) {
+    console.error('Error accepting step:', error)
+    showToast({
+      message: 'Failed to accept step. Please try again.',
+      color: 'danger',
+      duration: 4000,
+      position: 'top-right',
+    })
+  } finally {
+    isVerifying.value = false
+  }
+}
+
+const handleRejectStep = (stepKey: string) => {
+  // Store the step being rejected for the dialog
+  currentRejectingStep.value = stepKey
+  showRejectDialog.value = true
 }
 
 // Document approval/rejection functions
@@ -1121,6 +1221,10 @@ onMounted(() => {
   font-size: 0.9rem;
   transition: all 0.3s ease;
   border: 2px solid transparent;
+
+  .va-icon {
+    color: white !important;
+  }
 }
 
 .step-item.completed .step-number {
@@ -1232,15 +1336,15 @@ onMounted(() => {
 }
 
 .step-details {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  margin-top: 0.75rem;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  border: none;
 }
 
 .verification-checklist {
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .checklist-title {
@@ -1266,6 +1370,28 @@ onMounted(() => {
   gap: 0.5rem;
   font-size: 0.875rem;
   padding: 0.25rem 0;
+}
+
+.doc-inline-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  align-items: center;
+}
+
+.doc-action-btn {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  min-width: 1.5rem !important;
+  padding: 0 !important;
+
+  .va-button__content {
+    padding: 0 !important;
+  }
+
+  .va-icon {
+    font-size: 0.875rem !important;
+  }
 }
 
 .text-success {
@@ -1363,7 +1489,9 @@ onMounted(() => {
 
 .mini-doc-actions {
   display: flex;
+  gap: 0.375rem;
   justify-content: flex-end;
+  align-items: center;
 }
 
 /* Document Status Enhancements */
@@ -1594,6 +1722,259 @@ onMounted(() => {
 
   .document-admin-actions .va-button {
     flex: 1;
+  }
+}
+
+/* Document Viewer Modal Styles */
+.document-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: 80vh;
+}
+
+.document-info-section {
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item .label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-item .value {
+  font-size: 0.875rem;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.document-description {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.document-description .label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.document-description p {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.document-preview-section {
+  flex: 1;
+  overflow: hidden;
+}
+
+.document-preview-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.preview-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.preview-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background: white;
+}
+
+.pdf-preview-container {
+  width: 100%;
+  min-height: 600px;
+  background: white;
+}
+
+.document-pdf-object {
+  border: none;
+  width: 100%;
+  min-height: 600px;
+  background: white;
+}
+
+.pdf-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  background: #fef3f2;
+  border: 2px dashed #fca5a5;
+  border-radius: 0.5rem;
+  margin: 2rem;
+}
+
+.pdf-fallback .fallback-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #991b1b;
+  margin: 0;
+}
+
+.pdf-fallback .fallback-message {
+  font-size: 0.875rem;
+  color: #7f1d1d;
+  margin: 0;
+  text-align: center;
+  max-width: 400px;
+}
+
+.pdf-fallback .fallback-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.document-iframe {
+  border: none;
+  width: 100%;
+  min-height: 600px;
+  background: white;
+}
+
+.document-image {
+  max-width: 100%;
+  max-height: 70vh;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.file-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+}
+
+.file-preview .file-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  text-align: center;
+}
+
+.file-preview .file-type {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.no-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: #9ca3af;
+}
+
+.no-preview p {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.document-actions-section {
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .document-viewer {
+    max-height: 90vh;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .document-pdf-object {
+    min-height: 400px;
+  }
+
+  .document-iframe {
+    min-height: 400px;
+  }
+
+  .document-image {
+    max-height: 50vh;
+  }
+
+  .pdf-fallback {
+    padding: 2rem 1rem;
+    margin: 1rem;
+  }
+
+  .pdf-fallback .fallback-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .pdf-fallback .fallback-actions .va-button {
+    width: 100%;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-buttons .va-button {
+    width: 100%;
   }
 }
 </style>

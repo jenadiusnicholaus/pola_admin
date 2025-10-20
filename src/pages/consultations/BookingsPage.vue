@@ -6,8 +6,8 @@ const { bookings, isLoading, totalCount, fetchBookings, updateBookingStatus } = 
 
 const filters = ref({
   status: '',
-  service_type: '',
-  email: '',
+  booking_type: '',
+  client_email: '',
 })
 
 const showStatusModal = ref(false)
@@ -40,9 +40,9 @@ const handleUpdateStatus = async () => {
 }
 
 const columns = [
-  { key: 'client_email', label: 'Client', sortable: true },
-  { key: 'consultant_name', label: 'Consultant', sortable: true },
-  { key: 'service_type', label: 'Service', sortable: true },
+  { key: 'client', label: 'Client', sortable: true },
+  { key: 'consultant', label: 'Consultant', sortable: true },
+  { key: 'booking_type', label: 'Type', sortable: true },
   { key: 'scheduled_date', label: 'Date', sortable: true },
   { key: 'scheduled_duration_minutes', label: 'Duration', sortable: true },
   { key: 'total_amount', label: 'Amount', sortable: true },
@@ -51,20 +51,13 @@ const columns = [
 ]
 
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'confirmed':
-      return 'success'
-    case 'pending':
-      return 'warning'
-    case 'in_progress':
-      return 'info'
-    case 'completed':
-      return 'primary'
-    case 'cancelled':
-      return 'danger'
-    default:
-      return 'info'
+  const colors = {
+    confirmed: 'success',
+    pending: 'warning',
+    completed: 'primary',
+    cancelled: 'danger',
   }
+  return colors[status as keyof typeof colors] || 'info'
 }
 
 const formatDate = (dateString: string) => {
@@ -94,7 +87,7 @@ const formatCurrency = (amount: string) => {
     <VaCard>
       <VaCardContent>
         <div class="filters">
-          <VaInput v-model="filters.email" placeholder="Search by email" clearable>
+          <VaInput v-model="filters.client_email" placeholder="Search by client email" clearable>
             <template #prependInner>
               <VaIcon name="search" />
             </template>
@@ -103,19 +96,21 @@ const formatCurrency = (amount: string) => {
           <VaSelect
             v-model="filters.status"
             placeholder="All Statuses"
-            :options="['', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled']"
+            :options="['', 'pending', 'confirmed', 'completed', 'cancelled']"
             clearable
           />
 
           <VaSelect
-            v-model="filters.service_type"
-            placeholder="All Services"
-            :options="['', 'physical', 'mobile', 'video']"
+            v-model="filters.booking_type"
+            placeholder="All Types"
+            :options="['', 'physical', 'mobile']"
             clearable
           />
 
           <VaButton @click="handleSearch">Search</VaButton>
-          <VaButton preset="secondary" @click="filters = { status: '', service_type: '', email: '' }">Clear</VaButton>
+          <VaButton preset="secondary" @click="filters = { status: '', booking_type: '', client_email: '' }">
+            Clear
+          </VaButton>
         </div>
       </VaCardContent>
     </VaCard>
@@ -123,18 +118,28 @@ const formatCurrency = (amount: string) => {
     <VaCard>
       <VaCardContent>
         <VaDataTable :items="bookings" :columns="columns" :loading="isLoading" striped hoverable>
-          <template #cell(client_email)="{ rowData }">
+          <template #cell(client)="{ rowData }">
             <div class="user-cell">
               <VaIcon name="person" size="small" />
-              <span>{{ rowData.client_email }}</span>
+              <div>
+                <div>{{ rowData.client.first_name }} {{ rowData.client.last_name }}</div>
+                <div class="text-secondary">{{ rowData.client.email }}</div>
+              </div>
             </div>
           </template>
 
-          <template #cell(consultant_name)="{ rowData }">
+          <template #cell(consultant)="{ rowData }">
             <div class="user-cell">
               <VaIcon name="support_agent" size="small" />
-              <span>{{ rowData.consultant_name }}</span>
+              <div>
+                <div>{{ rowData.consultant.first_name }} {{ rowData.consultant.last_name }}</div>
+                <div class="text-secondary">{{ rowData.consultant.email }}</div>
+              </div>
             </div>
+          </template>
+
+          <template #cell(booking_type)="{ rowData }">
+            <VaBadge :text="rowData.booking_type" :color="rowData.booking_type === 'physical' ? 'primary' : 'info'" />
           </template>
 
           <template #cell(scheduled_date)="{ rowData }">
@@ -171,7 +176,7 @@ const formatCurrency = (amount: string) => {
         <VaSelect
           v-model="statusForm.status"
           label="Status"
-          :options="['pending', 'confirmed', 'in_progress', 'completed', 'cancelled']"
+          :options="['pending', 'confirmed', 'completed', 'cancelled']"
           required
         />
 
@@ -220,15 +225,51 @@ const formatCurrency = (amount: string) => {
 
 .filters {
   display: grid;
-  grid-template-columns: 1fr 200px 200px auto auto;
-  gap: 1rem;
+  grid-template-columns: 2fr 1fr 1fr auto auto;
+  gap: 0.75rem;
   align-items: end;
+}
+
+@media (max-width: 1200px) {
+  .filters {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .filters > :nth-child(4),
+  .filters > :nth-child(5) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filters > :first-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filters > :first-child {
+    grid-column: span 1;
+  }
 }
 
 .user-cell {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.text-secondary {
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
 .actions-cell {
@@ -261,10 +302,6 @@ const formatCurrency = (amount: string) => {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
-  }
-
-  .filters {
-    grid-template-columns: 1fr;
   }
 }
 </style>

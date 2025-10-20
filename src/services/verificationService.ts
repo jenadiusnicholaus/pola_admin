@@ -2,6 +2,7 @@
 import makeRequest from './makeRequest'
 import IRequestParams from '../models/models'
 import type { VerificationData, ProfileData, DocumentUpload, UploadedDocument, UserRole } from '../types/verification'
+import API_ENDPOINTS from './apiConfig'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const STATISTICS_ENDPOINT = import.meta.env.VITE_ADMIN_VERIFICATION_STATISTICS
@@ -67,12 +68,21 @@ export interface VerificationUser {
     pending: number
     rejected: number
   }
-  user_address?: {
-    street: string
-    city: string
-    region: string
-    district: string
-  }
+  user_address?:
+    | {
+        // Old API structure
+        street: string
+        city: string
+        region: string
+        district: string
+      }
+    | {
+        // New API structure
+        office_address: string
+        ward: string
+        district: string
+        region: string
+      }
   // New API structure properties
   missing_information?: {
     has_missing_items: boolean
@@ -88,6 +98,13 @@ export interface VerificationUser {
         }>
         missing_documents?: string[]
         missing_profile_fields?: string[]
+        required_fields?: string[]
+        verified_fields?: Array<{
+          field: string
+          label: string
+          value: any
+          status: string
+        }>
       }
     }
     current_step?: string
@@ -188,7 +205,7 @@ export const verificationService = {
 
   async verifyStep(verificationId: number, step: string, notes: string): Promise<any> {
     const params: IRequestParams = {
-      url: `${API_BASE_URL}${VERIFICATIONS_VERIFY_STEP_ENDPOINT}${verificationId}/verify_step/`,
+      url: API_ENDPOINTS.verifications.verifyStep(verificationId),
       method: 'POST',
       data: {
         step,
@@ -202,7 +219,7 @@ export const verificationService = {
 
   async approveVerification(verificationId: number, notes: string): Promise<any> {
     const params: IRequestParams = {
-      url: `${API_BASE_URL}${VERIFICATIONS_APPROVE_ENDPOINT}${verificationId}/`,
+      url: API_ENDPOINTS.verifications.approve(verificationId),
       method: 'POST',
       data: {
         notes,
@@ -215,7 +232,7 @@ export const verificationService = {
 
   async rejectVerification(verificationId: number, reason: string): Promise<any> {
     const params: IRequestParams = {
-      url: `${API_BASE_URL}${VERIFICATIONS_REJECT_ENDPOINT}${verificationId}/`,
+      url: API_ENDPOINTS.verifications.reject(verificationId),
       method: 'POST',
       data: {
         reason,
@@ -242,7 +259,7 @@ export const verificationService = {
 
   async verifyDocument(documentId: number, notes: string): Promise<any> {
     const params: IRequestParams = {
-      url: `${API_BASE_URL}${DOCUMENT_VERIFY_ENDPOINT}${documentId}/verify/`,
+      url: API_ENDPOINTS.documents.verify(documentId),
       method: 'POST',
       data: {
         status: 'verified',
@@ -256,7 +273,7 @@ export const verificationService = {
 
   async rejectDocument(documentId: number, reason: string): Promise<any> {
     const params: IRequestParams = {
-      url: `${API_BASE_URL}${DOCUMENT_REJECT_ENDPOINT}${documentId}/reject/`,
+      url: API_ENDPOINTS.documents.reject(documentId),
       method: 'POST',
       data: {
         reason,
@@ -269,7 +286,7 @@ export const verificationService = {
 
   async getVerificationDetails(verificationId: number): Promise<VerificationUser> {
     const params: IRequestParams = {
-      url: `${API_BASE_URL}${VERIFICATIONS_DETAIL_ENDPOINT}${verificationId}/`,
+      url: API_ENDPOINTS.verifications.detail(verificationId),
       method: 'GET',
     }
 
@@ -279,7 +296,7 @@ export const verificationService = {
 
   async requestDocuments(verificationId: number, documents: string[], message: string): Promise<any> {
     const params: IRequestParams = {
-      url: `${API_BASE_URL}${VERIFICATIONS_REQUEST_DOCS_ENDPOINT}${verificationId}/`,
+      url: API_ENDPOINTS.verifications.requestDocs(verificationId),
       method: 'POST',
       data: {
         documents,

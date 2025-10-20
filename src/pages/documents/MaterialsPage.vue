@@ -46,24 +46,26 @@ const handleReject = async () => {
 const columns = [
   { key: 'title', label: 'Title', sortable: true },
   { key: 'category_display', label: 'Category', sortable: true },
-  { key: 'uploader_email', label: 'Uploader', sortable: true },
-  { key: 'price', label: 'Price', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
+  { key: 'uploader', label: 'Uploader', sortable: false },
+  { key: 'uploader_type_display', label: 'Uploader Type', sortable: true },
+  { key: 'file_size_mb', label: 'Size (MB)', sortable: true },
+  { key: 'price', label: 'Price (TZS)', sortable: true },
+  { key: 'downloads_count', label: 'Downloads', sortable: true },
+  { key: 'is_approved', label: 'Status', sortable: true },
   { key: 'created_at', label: 'Uploaded', sortable: true },
   { key: 'actions', label: 'Actions', width: '200px' },
 ]
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'approved':
-      return 'success'
-    case 'pending':
-      return 'warning'
-    case 'rejected':
-      return 'danger'
-    default:
-      return 'info'
-  }
+const getStatusColor = (isApproved: boolean | null) => {
+  if (isApproved === true) return 'success'
+  if (isApproved === false) return 'danger'
+  return 'warning' // null or pending
+}
+
+const getStatusText = (isApproved: boolean | null) => {
+  if (isApproved === true) return 'Approved'
+  if (isApproved === false) return 'Rejected'
+  return 'Pending'
 }
 
 const formatDate = (dateString: string) => {
@@ -74,8 +76,15 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const formatPrice = (price: string, currency: string) => {
-  return `${currency} ${parseFloat(price).toLocaleString()}`
+const formatPrice = (price: string) => {
+  return `TZS ${parseFloat(price).toLocaleString()}`
+}
+
+const getUploaderName = (uploader: any) => {
+  if (uploader.first_name || uploader.last_name) {
+    return `${uploader.first_name} ${uploader.last_name}`.trim()
+  }
+  return uploader.email
 }
 </script>
 
@@ -130,22 +139,30 @@ const formatPrice = (price: string, currency: string) => {
             </div>
           </template>
 
-          <template #cell(uploader_email)="{ rowData }">
+          <template #cell(uploader)="{ rowData }">
             <div class="user-cell">
               <VaIcon name="person" size="small" />
               <div>
-                <div>{{ rowData.uploader_name }}</div>
-                <div class="email-text">{{ rowData.uploader_email }}</div>
+                <div>{{ getUploaderName(rowData.uploader) }}</div>
+                <div class="email-text">{{ rowData.uploader.email }}</div>
               </div>
             </div>
           </template>
 
-          <template #cell(price)="{ rowData }">
-            <strong>{{ formatPrice(rowData.price, rowData.currency) }}</strong>
+          <template #cell(file_size_mb)="{ rowData }">
+            <span>{{ rowData.file_size_mb }} MB</span>
           </template>
 
-          <template #cell(status)="{ rowData }">
-            <VaBadge :text="rowData.status" :color="getStatusColor(rowData.status)" />
+          <template #cell(price)="{ rowData }">
+            <strong>{{ formatPrice(rowData.price) }}</strong>
+          </template>
+
+          <template #cell(downloads_count)="{ rowData }">
+            <VaBadge :text="String(rowData.downloads_count)" color="info" />
+          </template>
+
+          <template #cell(is_approved)="{ rowData }">
+            <VaBadge :text="getStatusText(rowData.is_approved)" :color="getStatusColor(rowData.is_approved)" />
           </template>
 
           <template #cell(created_at)="{ rowData }">
@@ -155,7 +172,7 @@ const formatPrice = (price: string, currency: string) => {
           <template #cell(actions)="{ rowData }">
             <div class="actions-cell">
               <VaButton
-                v-if="rowData.status === 'pending'"
+                v-if="rowData.is_approved === null || rowData.is_approved === false"
                 preset="plain"
                 icon="check"
                 color="success"
@@ -165,7 +182,7 @@ const formatPrice = (price: string, currency: string) => {
                 Approve
               </VaButton>
               <VaButton
-                v-if="rowData.status === 'pending'"
+                v-if="rowData.is_approved === null || rowData.is_approved === true"
                 preset="plain"
                 icon="close"
                 color="danger"
@@ -174,9 +191,10 @@ const formatPrice = (price: string, currency: string) => {
               >
                 Reject
               </VaButton>
-              <VaButton preset="plain" icon="visibility" size="small" :href="rowData.file_url" target="_blank">
+              <VaButton preset="plain" icon="visibility" size="small" :href="rowData.file" target="_blank">
                 View
               </VaButton>
+              <VaButton preset="plain" icon="download" size="small" :href="rowData.file" download> Download </VaButton>
             </div>
           </template>
         </VaDataTable>

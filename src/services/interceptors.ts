@@ -1,11 +1,43 @@
 import axios from 'axios'
 import router from '../router'
 import { adminAuthService } from './adminAuthService'
+import { useGlobalStore } from '../stores/global-store'
+
+// Get the global store instance
+let globalStore: ReturnType<typeof useGlobalStore> | null = null
+
+// Initialize store when available (after Pinia is ready)
+const getGlobalStore = () => {
+  if (!globalStore) {
+    try {
+      globalStore = useGlobalStore()
+    } catch (error) {
+      // Store not ready yet, will retry on next call
+      console.warn('[Interceptor] Global store not ready yet')
+    }
+  }
+  return globalStore
+}
 
 // Request interceptor
 axios.interceptors.request.use(
   function (config) {
-    console.log('[Interceptor] Outgoing request to:', config.url)
+    console.log('[Interceptor] Outgoing request to:', config.url, 'Method:', config.method)
+
+    // Only show global loading spinner for POST, PUT, PATCH, DELETE (mutation operations)
+    // GET requests will use page-level loading spinners
+    const method = config.method?.toUpperCase()
+    const isMutationRequest = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+
+    if (isMutationRequest) {
+      const store = getGlobalStore()
+      if (store) {
+        console.log('[Interceptor] Starting global loading for', method, 'request')
+        store.startLoading()
+      }
+    } else {
+      console.log('[Interceptor] Skipping global loading for', method, 'request (use page-level loading)')
+    }
 
     // URLs that don't need authentication token
     const tobeInoredUrl = [
@@ -62,6 +94,19 @@ axios.interceptors.request.use(
   },
   function (error) {
     console.log(error)
+
+    // Stop loading spinner on request error (only for mutation requests)
+    const method = error.config?.method?.toUpperCase()
+    const isMutationRequest = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+
+    if (isMutationRequest) {
+      const store = getGlobalStore()
+      if (store) {
+        console.log('[Interceptor] Stopping global loading due to request error')
+        store.stopLoading()
+      }
+    }
+
     return Promise.reject(error)
   },
 )
@@ -70,10 +115,36 @@ axios.interceptors.request.use(
 axios.interceptors.response.use(
   function (response) {
     // Any status code that lie within the range of 2xx cause this function to trigger
+
+    // Stop loading spinner on success (only for mutation requests)
+    const method = response.config?.method?.toUpperCase()
+    const isMutationRequest = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+
+    if (isMutationRequest) {
+      const store = getGlobalStore()
+      if (store) {
+        console.log('[Interceptor] Stopping global loading for successful', method, 'response')
+        store.stopLoading()
+      }
+    }
+
     return response
   },
   async function (error) {
     // Any status codes that falls outside the range of 2xx cause this function to trigger
+
+    // Stop loading spinner on error (only for mutation requests)
+    const method = error.config?.method?.toUpperCase()
+    const isMutationRequest = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+
+    if (isMutationRequest) {
+      const store = getGlobalStore()
+      if (store) {
+        console.log('[Interceptor] Stopping global loading due to error response for', method)
+        store.stopLoading()
+      }
+    }
+
     const originalRequest: any = error.config || {}
     const status = error.response?.status
     console.log('[Interceptor] Response error:', status, 'for URL:', originalRequest?.url)

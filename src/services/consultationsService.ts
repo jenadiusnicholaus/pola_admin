@@ -1,11 +1,14 @@
 /**
  * Consultations Service
  * Handles consultation pricing, consultant profiles, and bookings management
+ * Based on: /api/v1/admin/consultations/
  */
 
-import { subscriptionApiClient, buildUrl } from './subscriptionApiClient'
+import makeRequest from './makeRequest'
+import type IRequestParams from '../models/models'
+import { API_ENDPOINTS } from './apiConfig'
 
-// Types
+// TypeScript Interfaces
 export interface PricingConfiguration {
   id: number
   service_type: string
@@ -50,31 +53,39 @@ export interface ConsultantProfile {
 
 export interface ConsultationBooking {
   id: number
-  client: number
-  client_email: string
-  consultant: number
-  consultant_name: string
-  service_type: string
+  client: {
+    id: number
+    email: string
+    first_name: string
+    last_name: string
+    phone_number: string | null
+    is_active: boolean
+  }
+  consultant: {
+    id: number
+    email: string
+    first_name: string
+    last_name: string
+    phone_number: string | null
+    is_active: boolean
+  }
+  consultant_profile_details: any | null
+  booking_type: 'mobile' | 'physical'
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
   scheduled_date: string
   scheduled_duration_minutes: number
-  actual_duration_minutes?: number
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
+  actual_start_time: string | null
+  actual_end_time: string | null
+  actual_duration_minutes: number
   total_amount: string
-  client_notes?: string
-  consultant_notes?: string
+  platform_commission: string
+  consultant_earnings: string
+  meeting_location: string
+  client_notes: string
+  consultant_notes: string
   created_at: string
   updated_at: string
-}
-
-export interface ConsultationFilters {
-  service_type?: string
-  status?: string
-  email?: string
-  consultant_id?: number
-  start_date?: string
-  end_date?: string
-  page?: number
-  page_size?: number
+  payment_details: any | null
 }
 
 export interface ConsultationStatistics {
@@ -99,9 +110,12 @@ export interface CreatePricingData {
 
 export interface CreateConsultantData {
   user_id: number
+  consultant_type: string
   specialization: string
   years_of_experience: number
-  bio?: string
+  offers_mobile_consultations?: boolean
+  offers_physical_consultations?: boolean
+  city?: string
   is_available?: boolean
 }
 
@@ -110,180 +124,256 @@ export interface UpdateBookingStatusData {
   notes?: string
 }
 
+export interface ConsultantFilters {
+  is_available?: boolean
+  specialization?: string
+  consultant_type?: string
+  city?: string
+}
+
+export interface BookingFilters {
+  booking_type?: string
+  status?: string
+  client_email?: string
+  consultant_id?: number
+  start_date?: string
+  end_date?: string
+  page?: number
+  page_size?: number
+}
+
+export interface ConsultantEarnings {
+  consultant_id: number
+  total_earnings: string
+  monthly_earnings: Record<string, string>
+  total_bookings: number
+}
+
 export const consultationsService = {
-  // ==================== Pricing Configuration ====================
-
-  /**
-   * Get all pricing configurations
-   */
+  // Pricing Configuration
   getPricingConfigs: async (): Promise<PricingConfiguration[]> => {
-    const response = await subscriptionApiClient.get(buildUrl('/admin/consultations/pricing/'))
-    return response.data.results || response.data
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.pricing.list(),
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data.results || response.data || []
   },
 
-  /**
-   * Get pricing by ID
-   */
   getPricingById: async (id: number): Promise<PricingConfiguration> => {
-    const response = await subscriptionApiClient.get(buildUrl(`/admin/consultations/pricing/${id}/`))
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.pricing.detail(id),
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
     return response.data
   },
 
-  /**
-   * Create pricing configuration
-   */
   createPricing: async (data: CreatePricingData): Promise<PricingConfiguration> => {
-    const response = await subscriptionApiClient.post(buildUrl('/admin/consultations/pricing/'), data)
-    return response.data
-  },
-
-  /**
-   * Update pricing configuration
-   */
-  updatePricing: async (id: number, data: Partial<CreatePricingData>): Promise<PricingConfiguration> => {
-    const response = await subscriptionApiClient.patch(buildUrl(`/admin/consultations/pricing/${id}/`), data)
-    return response.data
-  },
-
-  /**
-   * Delete pricing configuration
-   */
-  deletePricing: async (id: number): Promise<void> => {
-    await subscriptionApiClient.delete(buildUrl(`/admin/consultations/pricing/${id}/`))
-  },
-
-  // ==================== Consultant Profiles ====================
-
-  /**
-   * Get all consultants with filters
-   */
-  getConsultants: async (
-    filters: ConsultationFilters = {},
-  ): Promise<{ results: ConsultantProfile[]; count: number }> => {
-    const params = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value))
-      }
-    })
-    const response = await subscriptionApiClient.get(buildUrl(`/admin/consultations/consultants/?${params.toString()}`))
-    return response.data
-  },
-
-  /**
-   * Get consultant by ID
-   */
-  getConsultantById: async (id: number): Promise<ConsultantProfile> => {
-    const response = await subscriptionApiClient.get(buildUrl(`/admin/consultations/consultants/${id}/`))
-    return response.data
-  },
-
-  /**
-   * Create consultant profile
-   */
-  createConsultant: async (data: CreateConsultantData): Promise<ConsultantProfile> => {
-    const response = await subscriptionApiClient.post(buildUrl('/admin/consultations/consultants/'), data)
-    return response.data
-  },
-
-  /**
-   * Update consultant profile
-   */
-  updateConsultant: async (id: number, data: Partial<CreateConsultantData>): Promise<ConsultantProfile> => {
-    const response = await subscriptionApiClient.patch(buildUrl(`/admin/consultations/consultants/${id}/`), data)
-    return response.data
-  },
-
-  /**
-   * Delete consultant profile
-   */
-  deleteConsultant: async (id: number): Promise<void> => {
-    await subscriptionApiClient.delete(buildUrl(`/admin/consultations/consultants/${id}/`))
-  },
-
-  /**
-   * Toggle consultant availability
-   */
-  toggleAvailability: async (id: number): Promise<ConsultantProfile> => {
-    const response = await subscriptionApiClient.post(
-      buildUrl(`/admin/consultations/consultants/${id}/toggle-availability/`),
-    )
-    return response.data
-  },
-
-  /**
-   * Get consultant bookings
-   */
-  getConsultantBookings: async (id: number): Promise<ConsultationBooking[]> => {
-    const response = await subscriptionApiClient.get(buildUrl(`/admin/consultations/consultants/${id}/bookings/`))
-    return response.data
-  },
-
-  /**
-   * Get consultant earnings
-   */
-  getConsultantEarnings: async (id: number): Promise<any> => {
-    const response = await subscriptionApiClient.get(buildUrl(`/admin/consultations/consultants/${id}/earnings/`))
-    return response.data
-  },
-
-  // ==================== Consultation Bookings ====================
-
-  /**
-   * Get all bookings with filters
-   */
-  getBookings: async (
-    filters: ConsultationFilters = {},
-  ): Promise<{ results: ConsultationBooking[]; count: number }> => {
-    const params = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value))
-      }
-    })
-    const response = await subscriptionApiClient.get(buildUrl(`/admin/consultations/bookings/?${params.toString()}`))
-    return response.data
-  },
-
-  /**
-   * Get booking by ID
-   */
-  getBookingById: async (id: number): Promise<ConsultationBooking> => {
-    const response = await subscriptionApiClient.get(buildUrl(`/admin/consultations/bookings/${id}/`))
-    return response.data
-  },
-
-  /**
-   * Update booking status
-   */
-  updateBookingStatus: async (id: number, data: UpdateBookingStatusData): Promise<ConsultationBooking> => {
-    const response = await subscriptionApiClient.post(
-      buildUrl(`/admin/consultations/bookings/${id}/update-status/`),
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.pricing.list(),
+      method: 'POST',
       data,
-    )
+    }
+    const response = await makeRequest(params)
     return response.data
   },
 
-  /**
-   * Get consultation statistics
-   * GET /api/v1/admin/consultations/bookings/stats/
-   */
-  getStatistics: async (): Promise<ConsultationStatistics> => {
-    const response = await subscriptionApiClient.get(buildUrl('/admin/consultations/bookings/stats/'))
+  updatePricing: async (id: number, data: Partial<CreatePricingData>): Promise<PricingConfiguration> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.pricing.detail(id),
+      method: 'PATCH',
+      data,
+    }
+    const response = await makeRequest(params)
     return response.data
   },
 
-  /**
-   * Get consultation revenue
-   */
-  getRevenue: async (filters: ConsultationFilters = {}): Promise<any> => {
-    const params = new URLSearchParams()
+  deletePricing: async (id: number): Promise<void> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.pricing.detail(id),
+      method: 'DELETE',
+    }
+    await makeRequest(params)
+  },
+
+  // Consultant Profiles
+  getConsultants: async (filters: ConsultantFilters = {}): Promise<{ results: ConsultantProfile[]; count: number }> => {
+    const queryParams = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        params.append(key, String(value))
+        queryParams.append(key, String(value))
       }
     })
-    const response = await subscriptionApiClient.get(buildUrl(`/admin/consultations/revenue/?${params.toString()}`))
+
+    const baseUrl = API_ENDPOINTS.consultations.consultants.list()
+    const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl
+
+    console.log('[Service] Calling consultants API:', url)
+    const params: IRequestParams = {
+      url,
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    console.log('[Service] Raw axios response:', response)
+    console.log('[Service] Response.data type:', typeof response.data)
+    console.log('[Service] Response.data:', response.data)
+    console.log('[Service] Is array?:', Array.isArray(response.data))
+    console.log('[Service] Has results?:', response.data?.results !== undefined)
+
+    // Return the data structure expected
+    if (response.data.results) {
+      return response.data
+    } else if (Array.isArray(response.data)) {
+      return { results: response.data, count: response.data.length }
+    } else {
+      console.error('[Service] Unexpected response structure:', response.data)
+      return { results: [], count: 0 }
+    }
+  },
+
+  getConsultantById: async (id: number): Promise<ConsultantProfile> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.consultants.detail(id),
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  createConsultant: async (data: CreateConsultantData): Promise<ConsultantProfile> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.consultants.list(),
+      method: 'POST',
+      data,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  updateConsultant: async (id: number, data: Partial<CreateConsultantData>): Promise<ConsultantProfile> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.consultants.detail(id),
+      method: 'PATCH',
+      data,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  deleteConsultant: async (id: number): Promise<void> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.consultants.detail(id),
+      method: 'DELETE',
+    }
+    await makeRequest(params)
+  },
+
+  toggleAvailability: async (id: number, is_available: boolean): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.consultants.toggleAvailability(id),
+      method: 'POST',
+      data: { is_available },
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  getConsultantBookings: async (
+    id: number,
+    filters: BookingFilters = {},
+  ): Promise<{ results: ConsultationBooking[]; count: number; page: number; page_size: number }> => {
+    const queryParams = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value))
+      }
+    })
+
+    const baseUrl = API_ENDPOINTS.consultations.consultants.bookings(id)
+    const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl
+
+    const params: IRequestParams = {
+      url,
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  getConsultantEarnings: async (id: number): Promise<ConsultantEarnings> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.consultants.earnings(id),
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  // Consultation Bookings
+  getBookings: async (filters: BookingFilters = {}): Promise<{ results: ConsultationBooking[]; count: number }> => {
+    const queryParams = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value))
+      }
+    })
+
+    const baseUrl = API_ENDPOINTS.consultations.bookings.list()
+    const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl
+
+    const params: IRequestParams = {
+      url,
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  getBookingById: async (id: number): Promise<ConsultationBooking> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.bookings.detail(id),
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  updateBookingStatus: async (id: number, data: UpdateBookingStatusData): Promise<ConsultationBooking> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.bookings.updateStatus(id),
+      method: 'POST',
+      data,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  getStatistics: async (): Promise<ConsultationStatistics> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.consultations.bookings.stats(),
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  getRevenue: async (filters: BookingFilters = {}): Promise<any> => {
+    const queryParams = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value))
+      }
+    })
+
+    const baseUrl = API_ENDPOINTS.consultations.revenue()
+    const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl
+
+    const params: IRequestParams = {
+      url,
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
     return response.data
   },
 }

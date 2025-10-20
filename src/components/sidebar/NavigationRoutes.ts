@@ -211,8 +211,16 @@ export default {
       },
       children: [
         {
+          name: 'disbursements-list',
+          displayName: 'menu.disbursementsList',
+        },
+        {
           name: 'consultant-earnings',
-          displayName: 'menu.earnings',
+          displayName: 'menu.consultantEarnings',
+        },
+        {
+          name: 'uploader-earnings',
+          displayName: 'menu.uploaderEarnings',
         },
       ],
     },

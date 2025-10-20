@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { adminUserService, type AdminUser, type AdminUserStats } from '../../../services/adminUserService'
 
 export interface AdminUserFilters {
@@ -20,6 +20,7 @@ export function useAdminUsers() {
   const stats = ref<AdminUserStats | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const skipWatch = ref(false) // Flag to skip watcher during manual refresh
 
   const pagination = ref<AdminUserPagination>({
     page: 1,
@@ -29,27 +30,106 @@ export function useAdminUsers() {
 
   const filters = ref<AdminUserFilters>({
     search: '',
+    role: undefined,
+    is_active: undefined,
+    is_verified: undefined,
+    is_staff: undefined,
   })
 
   // Fetch users with filters and pagination
   const fetchUsers = async () => {
+    console.log('[fetchUsers] Starting fetch...')
+    console.log('[fetchUsers] Current filters:', JSON.stringify(filters.value))
+    console.log('[fetchUsers] Current pagination:', JSON.stringify(pagination.value))
     isLoading.value = true
     error.value = null
 
     try {
-      const response = await adminUserService.getAllUsers({
-        ...filters.value,
+      // Clean filters - remove empty strings, undefined values, and whitespace-only strings
+      const cleanFilters: any = {}
+      Object.entries(filters.value).forEach(([key, value]) => {
+        // Trim strings and check if they're empty
+        if (typeof value === 'string') {
+          const trimmedValue = value.trim()
+          if (trimmedValue !== '') {
+            cleanFilters[key] = trimmedValue
+            console.log(`[fetchUsers] Including filter: ${key} = "${trimmedValue}"`)
+          } else {
+            console.log(`[fetchUsers] Skipping empty string filter: ${key}`)
+          }
+        } else if (value !== null && value !== undefined) {
+          // Include boolean and other non-null, non-undefined values
+          cleanFilters[key] = value
+          console.log(`[fetchUsers] Including filter: ${key} = ${value}`)
+        } else {
+          console.log(`[fetchUsers] Skipping null/undefined filter: ${key}`)
+        }
+      })
+
+      const requestParams = {
+        ...cleanFilters,
         page: pagination.value.page,
         page_size: pagination.value.perPage,
-      })
+      }
+      console.log('[fetchUsers] Request params (after cleaning):', JSON.stringify(requestParams))
+
+      const response = await adminUserService.getAllUsers(requestParams)
+
+      console.log('[fetchUsers] ===== API RESPONSE =====')
+      console.log('[fetchUsers] Full response:', JSON.stringify(response))
+      console.log('[fetchUsers] Results count:', response.results?.length || 0)
+      console.log('[fetchUsers] Total count:', response.count)
+      console.log('[fetchUsers] Next page:', response.next)
+      console.log('[fetchUsers] Previous page:', response.previous)
+
+      if (!response.results || !Array.isArray(response.results)) {
+        console.error('[fetchUsers] ERROR: response.results is not an array!', response.results)
+        users.value = []
+        return
+      }
 
       users.value = response.results
       pagination.value.total = response.count
+
+      console.log('[fetchUsers] users.value successfully updated to:', users.value.length, 'items')
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch users'
-      console.error('Error fetching users:', err)
+      console.error('[fetchUsers] Error fetching users:', err)
+      console.error('[fetchUsers] Error stack:', err.stack)
     } finally {
       isLoading.value = false
+      console.log('[fetchUsers] Fetch complete, users.value.length =', users.value.length)
+    }
+  }
+
+  // Manual refresh without triggering watchers
+  const refreshUsers = async (clearFilters = false) => {
+    console.log('[refreshUsers] Manual refresh triggered, clearFilters:', clearFilters)
+    console.log('[refreshUsers] Current users count before:', users.value.length)
+
+    if (clearFilters) {
+      console.log('[refreshUsers] Clearing all filters')
+      filters.value = {
+        search: '',
+        role: undefined,
+        is_active: undefined,
+        is_verified: undefined,
+        is_staff: undefined,
+      }
+      pagination.value.page = 1
+    }
+
+    skipWatch.value = true
+    try {
+      await fetchUsers()
+      // Wait for Vue to finish all DOM updates and reactive updates
+      await nextTick()
+      console.log('[refreshUsers] After fetchUsers, users count:', users.value.length)
+    } finally {
+      // Use nextTick again before re-enabling watchers to be extra safe
+      await nextTick()
+      skipWatch.value = false
+      console.log('[refreshUsers] Re-enabled watchers, final users count:', users.value.length)
     }
   }
 
@@ -81,18 +161,33 @@ export function useAdminUsers() {
     user_role?: string
     date_of_birth?: string
   }): Promise<AdminUser | null> => {
+    console.log('[createUser] Starting user creation...')
+    console.log('[createUser] Data to send:', JSON.stringify(data))
     isLoading.value = true
     error.value = null
 
     try {
       const newUser = await adminUserService.createUser(data)
-      await fetchUsers() // Refresh list
+      console.log('[createUser] User created successfully:', newUser)
+      // Don't call fetchUsers here - let the parent component handle refresh
+      // to avoid multiple simultaneous requests
       return newUser
     } catch (err: any) {
-      error.value = err.message || 'Failed to create user'
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to create user'
+      const errorDetails = err.response?.data || err
+      error.value = errorMessage
+
+      console.error('[createUser] ===== ERROR CREATING USER =====')
+      console.error('[createUser] Error message:', errorMessage)
+      console.error('[createUser] Error details:', errorDetails)
+      console.error('[createUser] Full error object:', err)
+      console.error('[createUser] Response status:', err.response?.status)
+      console.error('[createUser] Response data:', JSON.stringify(err.response?.data))
+
       return null
     } finally {
       isLoading.value = false
+      console.log('[createUser] Create operation complete')
     }
   }
 
@@ -103,7 +198,7 @@ export function useAdminUsers() {
 
     try {
       const updatedUser = await adminUserService.updateUser(id, data)
-      await fetchUsers() // Refresh list
+      // Don't call fetchUsers here - let the parent component handle refresh
       return updatedUser
     } catch (err: any) {
       error.value = err.message || 'Failed to update user'
@@ -120,7 +215,7 @@ export function useAdminUsers() {
 
     try {
       const updatedUser = await adminUserService.partialUpdateUser(id, data)
-      await fetchUsers() // Refresh list
+      // Don't call fetchUsers here - let the parent component handle refresh
       return updatedUser
     } catch (err: any) {
       error.value = err.message || 'Failed to update user'
@@ -137,7 +232,7 @@ export function useAdminUsers() {
 
     try {
       await adminUserService.deleteUser(id)
-      await fetchUsers() // Refresh list
+      // Don't call fetchUsers here - let the parent component handle refresh
       return true
     } catch (err: any) {
       error.value = err.message || 'Failed to delete user'
@@ -154,7 +249,7 @@ export function useAdminUsers() {
 
     try {
       await adminUserService.assignRole(userId, roleName)
-      await fetchUsers() // Refresh list
+      // Don't call fetchUsers here - let the parent component handle refresh
       return true
     } catch (err: any) {
       error.value = err.message || 'Failed to assign role'
@@ -171,7 +266,7 @@ export function useAdminUsers() {
 
     try {
       await adminUserService.toggleActive(userId)
-      await fetchUsers() // Refresh list
+      // Don't call fetchUsers here - let the parent component handle refresh
       return true
     } catch (err: any) {
       error.value = err.message || 'Failed to toggle active status'
@@ -188,7 +283,7 @@ export function useAdminUsers() {
 
     try {
       await adminUserService.makeStaff(userId)
-      await fetchUsers() // Refresh list
+      // Don't call fetchUsers here - let the parent component handle refresh
       return true
     } catch (err: any) {
       error.value = err.message || 'Failed to make user staff'
@@ -205,7 +300,7 @@ export function useAdminUsers() {
 
     try {
       await adminUserService.removeStaff(userId)
-      await fetchUsers() // Refresh list
+      // Don't call fetchUsers here - let the parent component handle refresh
       return true
     } catch (err: any) {
       error.value = err.message || 'Failed to remove staff status'
@@ -251,6 +346,11 @@ export function useAdminUsers() {
   watch(
     () => filters.value,
     () => {
+      if (skipWatch.value) {
+        console.log('[Watcher] Skipping filter watcher')
+        return
+      }
+      console.log('[Watcher] Filter changed, resetting pagination and fetching users')
       pagination.value.page = 1
       fetchUsers()
     },
@@ -261,6 +361,11 @@ export function useAdminUsers() {
   watch(
     () => [pagination.value.page, pagination.value.perPage],
     () => {
+      if (skipWatch.value) {
+        console.log('[Watcher] Skipping pagination watcher')
+        return
+      }
+      console.log('[Watcher] Pagination changed, fetching users')
       fetchUsers()
     },
   )
@@ -277,6 +382,7 @@ export function useAdminUsers() {
     filters,
     totalPages,
     fetchUsers,
+    refreshUsers, // Use this for manual refreshes after CRUD operations
     fetchStats,
     getUserById,
     createUser,

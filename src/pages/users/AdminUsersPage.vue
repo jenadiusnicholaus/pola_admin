@@ -16,6 +16,7 @@ const {
   pagination,
   filters,
   fetchUsers,
+  refreshUsers, // Use this for manual refreshes after CRUD
   fetchStats,
   createUser,
   updateUser,
@@ -65,6 +66,11 @@ const handleEditUser = (user: AdminUser) => {
 }
 
 const handleSaveUser = async (userData: any) => {
+  console.log('[handleSaveUser] Starting save operation...')
+  console.log('[handleSaveUser] isEditMode:', isEditMode.value)
+  console.log('[handleSaveUser] userData:', userData)
+  console.log('[handleSaveUser] Current users count:', users.value.length)
+
   if (isEditMode.value && selectedUser.value) {
     // Detect if role changed
     const roleChanged = userData.user_role && userData.user_role !== selectedUser.value.user_role?.role_name
@@ -98,21 +104,37 @@ const handleSaveUser = async (userData: any) => {
 
     if (success) {
       showUserFormModal.value = false
-      // Refresh the user list and statistics
-      await fetchUsers()
+      console.log('[handleSaveUser] Refreshing users list after update...')
+      await refreshUsers()
       await fetchStats()
+      console.log('[handleSaveUser] After refresh, users count:', users.value.length)
     }
   } else {
+    console.log('[handleSaveUser] Creating new user...')
     const newUser = await createUser(userData)
+    console.log('[handleSaveUser] createUser response:', newUser)
+
     if (newUser) {
       notify({
         message: 'User created successfully',
         color: 'success',
       })
       showUserFormModal.value = false
-      // Refresh the user list and statistics
-      await fetchUsers()
+      console.log('[handleSaveUser] Refreshing users list after create...')
+      console.log('[handleSaveUser] Before refresh, users count:', users.value.length)
+      // Clear filters when creating a new user to ensure it shows up in the list
+      await refreshUsers(true)
+      console.log('[handleSaveUser] After refreshUsers, users count:', users.value.length)
       await fetchStats()
+      console.log('[handleSaveUser] After fetchStats, users count:', users.value.length)
+    } else {
+      console.error('[handleSaveUser] createUser returned null/undefined')
+      console.error('[handleSaveUser] Error from store:', error.value)
+      // Show error to user
+      notify({
+        message: error.value || 'Failed to create user. Please check the form and try again.',
+        color: 'danger',
+      })
     }
   }
 }
@@ -125,7 +147,7 @@ const handleDeleteUser = async (user: AdminUser) => {
       color: 'success',
     })
     // Refresh the user list and statistics
-    await fetchUsers()
+    await refreshUsers()
     await fetchStats()
   }
 }
@@ -146,7 +168,7 @@ const handleRoleAssign = async (roleName: string) => {
       })
       showRoleModal.value = false
       // Refresh the user list
-      await fetchUsers()
+      await refreshUsers()
     }
   }
 }
@@ -160,7 +182,7 @@ const handleToggleActive = async (user: AdminUser) => {
       color: 'success',
     })
     // Refresh the user list and statistics
-    await fetchUsers()
+    await refreshUsers()
     await fetchStats()
   }
 }
@@ -174,7 +196,7 @@ const handleMakeStaff = async (user: AdminUser) => {
       color: 'success',
     })
     // Refresh the user list and statistics
-    await fetchUsers()
+    await refreshUsers()
     await fetchStats()
   }
 }
@@ -187,7 +209,7 @@ const handleRemoveStaff = async (user: AdminUser) => {
       color: 'success',
     })
     // Refresh the user list and statistics
-    await fetchUsers()
+    await refreshUsers()
     await fetchStats()
   }
 }
@@ -198,7 +220,7 @@ const handleManagePermissions = (user: AdminUser) => {
 }
 
 const handlePermissionsRefresh = () => {
-  fetchUsers()
+  refreshUsers()
 }
 
 // Filter options

@@ -41,6 +41,10 @@ watch(
   () => props.user,
   (newUser) => {
     if (newUser) {
+      const formattedDate = formatDateForInput(newUser.date_of_birth)
+      console.log('User date_of_birth from backend:', newUser.date_of_birth)
+      console.log('Formatted date for input:', formattedDate)
+
       formData.value = {
         email: newUser.email || '',
         password: '',
@@ -48,7 +52,7 @@ watch(
         first_name: newUser.first_name || '',
         last_name: newUser.last_name || '',
         user_role: newUser.user_role?.role_name || '',
-        date_of_birth: newUser.date_of_birth || '',
+        date_of_birth: formattedDate,
         is_staff: newUser.is_staff || false,
       }
     } else {
@@ -67,6 +71,42 @@ watch(
   { immediate: true },
 )
 
+// Helper function to format date from backend to input format (YYYY-MM-DD)
+const formatDateForInput = (dateString: string | null | undefined): string => {
+  if (!dateString || dateString.trim() === '') {
+    console.log('formatDateForInput: empty input')
+    return ''
+  }
+
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    console.log('formatDateForInput: already in correct format:', dateString)
+    return dateString
+  }
+
+  // Parse and format the date
+  try {
+    // Handle different date formats
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      console.warn('formatDateForInput: invalid date:', dateString)
+      return ''
+    }
+
+    // Use UTC to avoid timezone issues
+    const year = date.getUTCFullYear()
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(date.getUTCDate()).padStart(2, '0')
+
+    const formatted = `${year}-${month}-${day}`
+    console.log('formatDateForInput: formatted', dateString, '→', formatted)
+    return formatted
+  } catch (error) {
+    console.error('formatDateForInput: error formatting date:', error)
+    return ''
+  }
+}
+
 const passwordMatchRule = () => {
   if (!props.isEdit || formData.value.password) {
     return formData.value.password === formData.value.confirmPassword || 'Passwords must match'
@@ -79,12 +119,30 @@ const handleSave = () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { confirmPassword, password, ...cleanData } = formData.value
 
+    console.log('Form date_of_birth before format:', cleanData.date_of_birth)
+
+    // Ensure date_of_birth is in YYYY-MM-DD format or null (not empty string)
+    let formattedDateOfBirth = null
+    if (cleanData.date_of_birth && cleanData.date_of_birth.trim() !== '') {
+      const formatted = formatDateForInput(cleanData.date_of_birth)
+      formattedDateOfBirth = formatted || null
+    }
+
+    console.log('Formatted date_of_birth to send:', formattedDateOfBirth)
+
+    const dataToSend = {
+      ...cleanData,
+      date_of_birth: formattedDateOfBirth,
+    }
+
+    console.log('Data to send:', dataToSend)
+
     // In edit mode, send cleanData without password fields
     // In create mode, add password back
     if (props.isEdit) {
-      emit('save', cleanData)
+      emit('save', dataToSend)
     } else {
-      emit('save', { ...cleanData, password: formData.value.password })
+      emit('save', { ...dataToSend, password: formData.value.password })
     }
   }
 }

@@ -150,11 +150,45 @@ const routes: Array<RouteRecordRaw> = [
         component: RouteViewComponent,
         children: [
           {
+            path: '',
+            redirect: { name: 'disbursements-list' },
+          },
+          {
+            name: 'disbursements-list',
+            path: 'list',
+            component: () => import('../pages/disbursements/DisbursementsPage.vue'),
+          },
+          {
             name: 'consultant-earnings',
             path: 'consultant-earnings',
             component: () => import('../pages/disbursements/ConsultantEarningsPage.vue'),
           },
+          {
+            name: 'uploader-earnings',
+            path: 'uploader-earnings',
+            component: () => import('../pages/disbursements/UploaderEarningsPage.vue'),
+          },
         ],
+      },
+      {
+        name: 'user-profile',
+        path: 'profile',
+        component: () => import('../pages/user/UserProfile.vue'),
+      },
+      {
+        name: 'user-verification',
+        path: 'verification',
+        component: () => import('../pages/user/UserVerificationPage.vue'),
+      },
+      {
+        name: 'billing',
+        path: 'billing',
+        component: () => import('../pages/billing/BillingPage.vue'),
+      },
+      {
+        name: 'faq',
+        path: 'faq',
+        component: () => import('../pages/faq/FaqPage.vue'),
       },
     ],
   },

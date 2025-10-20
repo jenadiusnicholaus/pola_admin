@@ -1,6 +1,11 @@
 <template>
   <RouterView />
+  <GlobalLoading />
 </template>
+
+<script setup lang="ts">
+import GlobalLoading from './components/GlobalLoading.vue'
+</script>
 
 <style lang="scss">
 #app {

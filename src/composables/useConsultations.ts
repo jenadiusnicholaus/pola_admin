@@ -10,7 +10,8 @@ import {
   type PricingConfiguration,
   type ConsultantProfile,
   type ConsultationBooking,
-  type ConsultationFilters,
+  type ConsultantFilters,
+  type BookingFilters,
   type ConsultationStatistics,
   type CreatePricingData,
   type CreateConsultantData,
@@ -104,14 +105,32 @@ export function useConsultations() {
 
   // ==================== Consultants ====================
 
-  const fetchConsultants = async (filters: ConsultationFilters = {}) => {
+  const fetchConsultants = async (filters: ConsultantFilters = {}) => {
     isLoading.value = true
     error.value = null
     try {
+      console.log('Fetching consultants with filters:', filters)
       const response = await consultationsService.getConsultants(filters)
-      consultants.value = response.results
-      totalCount.value = response.count
+      console.log('Consultants API response:', response)
+
+      // Handle different response structures
+      if (response && response.results) {
+        consultants.value = response.results
+        totalCount.value = response.count || response.results.length
+      } else if (Array.isArray(response)) {
+        // If response is directly an array
+        consultants.value = response
+        totalCount.value = response.length
+      } else {
+        consultants.value = []
+        totalCount.value = 0
+      }
+
+      console.log('Consultants set:', consultants.value.length, 'items')
     } catch (err: any) {
+      console.error('Error fetching consultants:', err)
+      consultants.value = []
+      totalCount.value = 0
       error.value = err.response?.data?.detail || 'Failed to fetch consultants'
       notify({ message: error.value ?? 'Failed to fetch consultants', color: 'danger' })
     } finally {
@@ -156,15 +175,19 @@ export function useConsultations() {
     }
   }
 
-  const toggleConsultantAvailability = async (id: number) => {
+  const toggleConsultantAvailability = async (id: number, is_available?: boolean) => {
     try {
-      const updated = await consultationsService.toggleAvailability(id)
+      // If is_available not provided, toggle the current state
+      const consultant = consultants.value.find((c) => c.id === id)
+      const newAvailability = is_available !== undefined ? is_available : !consultant?.is_available
+
+      const updated = await consultationsService.toggleAvailability(id, newAvailability)
       const index = consultants.value.findIndex((c) => c.id === id)
       if (index !== -1) {
-        consultants.value[index] = updated
+        consultants.value[index] = updated.consultant || updated
       }
       notify({
-        message: `Consultant ${updated.is_available ? 'enabled' : 'disabled'}`,
+        message: `Consultant ${updated.consultant?.is_available || updated.is_available ? 'enabled' : 'disabled'}`,
         color: 'success',
       })
       return updated
@@ -177,7 +200,7 @@ export function useConsultations() {
 
   // ==================== Bookings ====================
 
-  const fetchBookings = async (filters: ConsultationFilters = {}) => {
+  const fetchBookings = async (filters: BookingFilters = {}) => {
     isLoading.value = true
     error.value = null
     try {

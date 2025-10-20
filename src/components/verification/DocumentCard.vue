@@ -27,7 +27,7 @@
       </VaButton>
 
       <VaButton
-        v-if="document.verification_status !== 'verified'"
+        v-if="document.verification_status === 'pending' || document.verification_status === 'rejected'"
         size="small"
         color="success"
         icon="check"
@@ -38,7 +38,7 @@
       </VaButton>
 
       <VaButton
-        v-if="document.verification_status !== 'rejected'"
+        v-if="document.verification_status === 'pending'"
         size="small"
         color="danger"
         icon="close"

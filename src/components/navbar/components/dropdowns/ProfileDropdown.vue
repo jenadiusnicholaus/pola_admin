@@ -5,10 +5,8 @@
         <VaButton preset="secondary" color="textPrimary">
           <span class="profile-dropdown__anchor min-w-max">
             <slot />
-            <VaAvatar :size="32" :src="profile?.profile_picture || undefined" color="primary" class="profile-avatar">
-              <template v-if="!profile?.profile_picture">
-                {{ getInitials() }}
-              </template>
+            <VaAvatar :size="32" :src="profilePicture" color="primary" class="profile-avatar">
+              {{ initials }}
             </VaAvatar>
           </span>
         </VaButton>
@@ -18,13 +16,13 @@
         :style="{ '--hover-color': hoverColor }"
       >
         <!-- User Info Header -->
-        <div v-if="profile" class="profile-info-header px-4 mb-3">
+        <div class="profile-info-header px-4 mb-3">
           <p class="user-name">{{ userFullName }}</p>
-          <p class="user-email">{{ profile.email }}</p>
+          <p class="user-email">{{ userEmail }}</p>
           <VaBadge
-            v-if="profile.verification_status"
-            :text="profile.verification_status.status"
-            :color="profile.is_verified ? 'success' : 'warning'"
+            v-if="verificationStatusText"
+            :text="verificationStatusText"
+            :color="isVerified ? 'success' : 'warning'"
             size="small"
             class="mt-1"
           />
@@ -66,20 +64,37 @@ const userStore = useUserStore()
 const { profile } = storeToRefs(userStore)
 
 const userFullName = computed(() => {
-  if (profile.value) {
-    return `${profile.value.first_name} ${profile.value.last_name}`.trim()
+  if (profile.value && (profile.value.first_name || profile.value.last_name)) {
+    return `${profile.value.first_name || ''} ${profile.value.last_name || ''}`.trim()
   }
   return 'User'
 })
 
-const getInitials = () => {
+const userEmail = computed(() => {
+  return profile.value?.email || 'user@example.com'
+})
+
+const profilePicture = computed(() => {
+  return profile.value?.profile_picture || undefined
+})
+
+const initials = computed(() => {
   if (profile.value) {
     const first = profile.value.first_name?.charAt(0) || ''
     const last = profile.value.last_name?.charAt(0) || ''
-    return `${first}${last}`.toUpperCase() || 'U'
+    const combined = `${first}${last}`.toUpperCase()
+    return combined || 'U'
   }
   return 'U'
-}
+})
+
+const verificationStatusText = computed(() => {
+  return profile.value?.verification_status?.status || null
+})
+
+const isVerified = computed(() => {
+  return profile.value?.is_verified || false
+})
 
 type ProfileListItem = {
   name: string
@@ -170,6 +185,7 @@ onMounted(async () => {
       await userStore.fetchUserProfile()
     } catch (error) {
       console.error('Failed to load profile in navbar:', error)
+      // Silently fail - the component will show default values
     }
   }
 })

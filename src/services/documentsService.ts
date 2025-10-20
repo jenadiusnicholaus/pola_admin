@@ -10,23 +10,29 @@ export interface LearningMaterial {
   id: number
   title: string
   description: string
+  uploader: {
+    id: number
+    email: string
+    first_name: string
+    last_name: string
+    role_name: string
+    is_active: boolean
+  }
+  uploader_type: string
+  uploader_type_display: string
   category: string
   category_display: string
-  uploader: number
-  uploader_email: string
-  uploader_name: string
-  uploader_type: string
-  price: string
-  currency: string
-  file_url: string
+  file: string
   file_size: number
+  file_size_mb: number
+  price: string
   downloads_count: number
-  status: 'pending' | 'approved' | 'rejected'
-  admin_note?: string
+  total_revenue: string
+  uploader_earnings: string
+  is_active: boolean
+  is_approved: boolean | null
   created_at: string
   updated_at: string
-  approved_at?: string
-  rejected_at?: string
 }
 
 export interface DocumentFilters {

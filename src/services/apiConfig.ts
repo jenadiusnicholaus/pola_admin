@@ -206,29 +206,79 @@ export const API_ENDPOINTS = {
     list: () => buildUrl(import.meta.env.VITE_DISBURSEMENTS || '/admin/disbursements/'),
     detail: (id: number) =>
       buildUrl(import.meta.env.VITE_DISBURSEMENTS_DETAIL || '/admin/disbursements/{id}/', { id: String(id) }),
-    stats: () => buildUrl(import.meta.env.VITE_DISBURSEMENTS_STATS || '/admin/disbursements/stats/'),
-    approve: (id: number) =>
-      buildUrl(import.meta.env.VITE_DISBURSEMENTS_APPROVE || '/admin/disbursements/{id}/approve/', { id: String(id) }),
-    reject: (id: number) =>
-      buildUrl(import.meta.env.VITE_DISBURSEMENTS_REJECT || '/admin/disbursements/{id}/reject/', { id: String(id) }),
+    process: (id: number) =>
+      buildUrl(import.meta.env.VITE_DISBURSEMENTS_PROCESS || '/admin/disbursements/{id}/process/', { id: String(id) }),
+    cancel: (id: number) =>
+      buildUrl(import.meta.env.VITE_DISBURSEMENTS_CANCEL || '/admin/disbursements/{id}/cancel/', { id: String(id) }),
+    checkStatus: (id: number) =>
+      buildUrl(import.meta.env.VITE_DISBURSEMENTS_CHECK_STATUS || '/admin/disbursements/{id}/check_status/', {
+        id: String(id),
+      }),
+    pending: () => buildUrl(import.meta.env.VITE_DISBURSEMENTS_PENDING || '/admin/disbursements/pending/'),
+    statistics: () => buildUrl(import.meta.env.VITE_DISBURSEMENTS_STATISTICS || '/admin/disbursements/statistics/'),
+  },
+
+  // Earnings Management
+  earnings: {
+    consultant: () => buildUrl(import.meta.env.VITE_EARNINGS_CONSULTANT || '/admin/earnings/consultant/'),
+    uploader: () => buildUrl(import.meta.env.VITE_EARNINGS_UPLOADER || '/admin/earnings/uploader/'),
+    unpaid: () => buildUrl(import.meta.env.VITE_EARNINGS_UNPAID || '/admin/earnings/unpaid/'),
+    summary: () => buildUrl(import.meta.env.VITE_EARNINGS_SUMMARY || '/admin/earnings/summary/'),
+    bulkPayout: () => buildUrl(import.meta.env.VITE_EARNINGS_BULK_PAYOUT || '/admin/earnings/bulk_payout/'),
   },
 
   // Consultation Management
   consultations: {
-    list: () => buildUrl(import.meta.env.VITE_CONSULTATIONS || '/admin/consultations/'),
-    detail: (id: number) =>
-      buildUrl(import.meta.env.VITE_CONSULTATIONS_DETAIL || '/admin/consultations/{id}/', { id: String(id) }),
-    stats: () => buildUrl(import.meta.env.VITE_CONSULTATIONS_STATS || '/admin/consultations/stats/'),
-    approve: (id: number) =>
-      buildUrl(import.meta.env.VITE_CONSULTATIONS_APPROVE || '/admin/consultations/{id}/approve/', { id: String(id) }),
-    reject: (id: number) =>
-      buildUrl(import.meta.env.VITE_CONSULTATIONS_REJECT || '/admin/consultations/{id}/reject/', { id: String(id) }),
-    cancel: (id: number) =>
-      buildUrl(import.meta.env.VITE_CONSULTATIONS_CANCEL || '/admin/consultations/{id}/cancel/', { id: String(id) }),
-    complete: (id: number) =>
-      buildUrl(import.meta.env.VITE_CONSULTATIONS_COMPLETE || '/admin/consultations/{id}/complete/', {
-        id: String(id),
-      }),
+    // Pricing
+    pricing: {
+      list: () => buildUrl(import.meta.env.VITE_CONSULTATIONS_PRICING || '/admin/consultations/pricing/'),
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_CONSULTATIONS_PRICING_DETAIL || '/admin/consultations/pricing/{id}/', {
+          id: String(id),
+        }),
+    },
+    // Consultants
+    consultants: {
+      list: () => buildUrl(import.meta.env.VITE_CONSULTATIONS_CONSULTANTS || '/admin/consultations/consultants/'),
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_CONSULTATIONS_CONSULTANTS_DETAIL || '/admin/consultations/consultants/{id}/', {
+          id: String(id),
+        }),
+      toggleAvailability: (id: number) =>
+        buildUrl(
+          import.meta.env.VITE_CONSULTATIONS_CONSULTANTS_TOGGLE ||
+            '/admin/consultations/consultants/{id}/toggle-availability/',
+          { id: String(id) },
+        ),
+      bookings: (id: number) =>
+        buildUrl(
+          import.meta.env.VITE_CONSULTATIONS_CONSULTANTS_BOOKINGS || '/admin/consultations/consultants/{id}/bookings/',
+          { id: String(id) },
+        ),
+      earnings: (id: number) =>
+        buildUrl(
+          import.meta.env.VITE_CONSULTATIONS_CONSULTANTS_EARNINGS || '/admin/consultations/consultants/{id}/earnings/',
+          { id: String(id) },
+        ),
+    },
+    // Bookings
+    bookings: {
+      list: () => buildUrl(import.meta.env.VITE_CONSULTATIONS_BOOKINGS || '/admin/consultations/bookings/'),
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_CONSULTATIONS_BOOKINGS_DETAIL || '/admin/consultations/bookings/{id}/', {
+          id: String(id),
+        }),
+      updateStatus: (id: number) =>
+        buildUrl(
+          import.meta.env.VITE_CONSULTATIONS_BOOKINGS_UPDATE_STATUS ||
+            '/admin/consultations/bookings/{id}/update-status/',
+          { id: String(id) },
+        ),
+      stats: () =>
+        buildUrl(import.meta.env.VITE_CONSULTATIONS_BOOKINGS_STATS || '/admin/consultations/bookings/stats/'),
+    },
+    // Revenue
+    revenue: () => buildUrl(import.meta.env.VITE_CONSULTATIONS_REVENUE || '/admin/consultations/revenue/'),
   },
 
   // Call Credits Management
