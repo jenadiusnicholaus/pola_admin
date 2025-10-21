@@ -322,6 +322,56 @@ export const API_ENDPOINTS = {
     revenue: () => buildUrl(import.meta.env.VITE_ANALYTICS_REVENUE || '/admin/analytics/revenue/'),
     subscriptions: () => buildUrl(import.meta.env.VITE_ANALYTICS_SUBSCRIPTIONS || '/admin/analytics/subscriptions/'),
   },
+
+  // Education Hubs Management
+  hubs: {
+    // Topics Management
+    topics: {
+      list: () => buildUrl(import.meta.env.VITE_HUBS_TOPICS || '/admin/hubs/topics/'),
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_TOPICS_DETAIL || '/admin/hubs/topics/{id}/', { id: String(id) }),
+      toggle: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_TOPICS_TOGGLE || '/admin/hubs/topics/{id}/toggle/', { id: String(id) }),
+      reorder: () => buildUrl(import.meta.env.VITE_HUBS_TOPICS_REORDER || '/admin/hubs/topics/reorder/'),
+      bulkToggle: () => buildUrl(import.meta.env.VITE_HUBS_TOPICS_BULK_TOGGLE || '/admin/hubs/topics/bulk-toggle/'),
+      stats: () => buildUrl(import.meta.env.VITE_HUBS_TOPICS_STATS || '/admin/hubs/topics/stats/'),
+    },
+    // Subtopics Management
+    subtopics: {
+      list: () => buildUrl(import.meta.env.VITE_HUBS_SUBTOPICS || '/admin/hubs/subtopics/'),
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_SUBTOPICS_DETAIL || '/admin/hubs/subtopics/{id}/', { id: String(id) }),
+      toggle: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_SUBTOPICS_TOGGLE || '/admin/hubs/subtopics/{id}/toggle/', {
+          id: String(id),
+        }),
+      reorder: () => buildUrl(import.meta.env.VITE_HUBS_SUBTOPICS_REORDER || '/admin/hubs/subtopics/reorder/'),
+      bulkToggle: () =>
+        buildUrl(import.meta.env.VITE_HUBS_SUBTOPICS_BULK_TOGGLE || '/admin/hubs/subtopics/bulk-toggle/'),
+      stats: () => buildUrl(import.meta.env.VITE_HUBS_SUBTOPICS_STATS || '/admin/hubs/subtopics/stats/'),
+      materials: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_SUBTOPICS_MATERIALS || '/admin/hubs/subtopics/{id}/materials/', {
+          id: String(id),
+        }),
+    },
+    // Materials Management
+    materials: {
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_DETAIL || '/admin/hubs/materials/{id}/', { id: String(id) }),
+      approve: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_APPROVE || '/admin/hubs/materials/{id}/approve/', {
+          id: String(id),
+        }),
+      reject: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_REJECT || '/admin/hubs/materials/{id}/reject/', {
+          id: String(id),
+        }),
+      toggle: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_TOGGLE || '/admin/hubs/materials/{id}/toggle/', {
+          id: String(id),
+        }),
+    },
+  },
 }
 
 export default API_ENDPOINTS

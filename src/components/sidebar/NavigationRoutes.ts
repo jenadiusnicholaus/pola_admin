@@ -204,6 +204,19 @@ export default {
       ],
     },
     {
+      name: 'hubs',
+      displayName: 'menu.hubs',
+      meta: {
+        icon: 'hub',
+      },
+      children: [
+        {
+          name: 'legal-education',
+          displayName: 'menu.legalEducation',
+        },
+      ],
+    },
+    {
       name: 'disbursements',
       displayName: 'menu.disbursements',
       meta: {

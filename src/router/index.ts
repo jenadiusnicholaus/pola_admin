@@ -145,6 +145,28 @@ const routes: Array<RouteRecordRaw> = [
         ],
       },
       {
+        name: 'hubs',
+        path: 'hubs',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'legal-education',
+            path: 'legal-education',
+            component: () => import('../pages/hubs/LegalEducationPage.vue'),
+          },
+          {
+            name: 'subtopics',
+            path: 'legal-education/:topicId/subtopics',
+            component: () => import('../pages/hubs/SubtopicsPage.vue'),
+          },
+          {
+            name: 'hubs-materials',
+            path: 'legal-education/:topicId/subtopics/:subtopicId/materials',
+            component: () => import('../pages/hubs/MaterialsPage.vue'),
+          },
+        ],
+      },
+      {
         name: 'disbursements',
         path: 'disbursements',
         component: RouteViewComponent,

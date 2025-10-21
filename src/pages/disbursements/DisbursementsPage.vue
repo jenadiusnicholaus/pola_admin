@@ -153,6 +153,17 @@
               </VaButton>
 
               <VaButton
+                v-if="rowData.status === 'failed'"
+                size="small"
+                color="warning"
+                icon="refresh"
+                :loading="resubmittingId === rowData.id"
+                @click="handleResubmit(rowData)"
+              >
+                Re-process
+              </VaButton>
+
+              <VaButton
                 v-if="['pending', 'processing'].includes(rowData.status)"
                 size="small"
                 color="danger"
@@ -425,6 +436,15 @@
             Process Payment
           </VaButton>
           <VaButton
+            v-if="selectedDisbursement.status === 'failed'"
+            color="warning"
+            icon="refresh"
+            :loading="resubmittingId === selectedDisbursement.id"
+            @click="handleResubmitFromDetails()"
+          >
+            Resubmit Payment
+          </VaButton>
+          <VaButton
             v-if="['pending', 'processing'].includes(selectedDisbursement.status)"
             color="danger"
             @click="handleCancelFromDetails()"
@@ -476,6 +496,7 @@ const pageSize = 10
 const processingId = ref<number | null>(null)
 const cancelingId = ref<number | null>(null)
 const checkingStatusId = ref<number | null>(null)
+const resubmittingId = ref<number | null>(null)
 
 const showProcessModal = ref(false)
 const showDetailsModal = ref(false)
@@ -654,6 +675,26 @@ const handleCheckStatus = async (disbursement: Disbursement) => {
   }
 }
 
+const handleResubmit = async (disbursement: Disbursement) => {
+  resubmittingId.value = disbursement.id
+  try {
+    await disbursementsService.processDisbursement(disbursement.id)
+    notify({
+      message: 'Disbursement resubmitted successfully',
+      color: 'success',
+    })
+    await fetchDisbursements()
+    await fetchStatistics()
+  } catch (error: any) {
+    notify({
+      message: error.message || 'Failed to resubmit disbursement',
+      color: 'danger',
+    })
+  } finally {
+    resubmittingId.value = null
+  }
+}
+
 const handleSearch = () => {
   currentPage.value = 1
   fetchDisbursements()
@@ -675,6 +716,28 @@ const handleClear = () => {
 const handleCancelFromDetails = () => {
   showDetailsModal.value = false
   showCancelModal.value = true
+}
+
+const handleResubmitFromDetails = async () => {
+  if (!selectedDisbursement.value) return
+  resubmittingId.value = selectedDisbursement.value.id
+  try {
+    await disbursementsService.processDisbursement(selectedDisbursement.value.id)
+    notify({
+      message: 'Disbursement resubmitted successfully',
+      color: 'success',
+    })
+    showDetailsModal.value = false
+    await fetchDisbursements()
+    await fetchStatistics()
+  } catch (error: any) {
+    notify({
+      message: error.message || 'Failed to resubmit disbursement',
+      color: 'danger',
+    })
+  } finally {
+    resubmittingId.value = null
+  }
 }
 
 const handleCheckStatusFromDetails = async () => {
