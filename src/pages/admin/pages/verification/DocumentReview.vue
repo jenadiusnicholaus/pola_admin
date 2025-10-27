@@ -130,13 +130,14 @@
             </div>
             <div class="document-container">
               <div v-if="selectedDocument.file_url" class="document-wrapper">
-                <!-- PDF Viewer -->
-                <iframe
-                  v-if="selectedDocument.file_url.toLowerCase().includes('.pdf')"
-                  :src="selectedDocument.file_url"
-                  class="pdf-viewer"
-                  frameborder="0"
-                ></iframe>
+                <!-- PDF Viewer using VuePDF -->
+                <div v-if="isPdfFile(selectedDocument.file_url)" class="pdf-viewer-wrapper">
+                  <VuePDF v-if="documentPdf" :pdf="documentPdf" />
+                  <div v-else class="pdf-loading">
+                    <VaProgressCircle indeterminate />
+                    <p>Loading PDF...</p>
+                  </div>
+                </div>
                 <!-- Image Viewer -->
                 <div v-else-if="isImageFile(selectedDocument.file_url)" class="image-viewer">
                   <img :src="selectedDocument.file_url" :alt="selectedDocument.title" class="document-image" />
@@ -219,8 +220,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useToast } from 'vuestic-ui'
+import { VuePDF, usePDF } from '@tato30/vue-pdf'
 import { useVerificationStore } from '../../../../stores/verification-store'
 import type { Document } from '../../../../services/verificationService'
 
@@ -232,6 +234,22 @@ const selectedDocument = ref<Document | null>(null)
 const showRejectForm = ref(false)
 const verificationNotes = ref('')
 const rejectReason = ref('')
+
+// PDF loading state
+const documentPdfSrc = ref<string>('')
+const { pdf: documentPdf } = usePDF(documentPdfSrc)
+
+// Watch for changes in selected document to load PDF
+watch(
+  () => selectedDocument.value,
+  (newDoc) => {
+    if (newDoc && newDoc.file_url && isPdfFile(newDoc.file_url)) {
+      documentPdfSrc.value = newDoc.file_url
+    } else {
+      documentPdfSrc.value = ''
+    }
+  },
+)
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -309,6 +327,11 @@ const downloadDocument = () => {
 const isImageFile = (url: string) => {
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']
   return imageExtensions.some((ext) => url.toLowerCase().includes(ext))
+}
+
+const isPdfFile = (url: string) => {
+  if (!url) return false
+  return url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('application/pdf')
 }
 
 const getDocumentIcon = (documentType: string) => {
@@ -525,6 +548,31 @@ onMounted(async () => {
 }
 
 /* PDF Viewer */
+.pdf-viewer-wrapper {
+  width: 100%;
+  height: 600px;
+  overflow-y: auto;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.pdf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  min-height: 400px;
+}
+
+.pdf-viewer-wrapper canvas {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
+}
+
+/* Legacy iframe fallback (if needed) */
 .pdf-viewer {
   width: 100%;
   height: 600px;

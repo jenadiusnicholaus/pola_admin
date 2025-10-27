@@ -82,7 +82,9 @@
 
     <!-- Step Action Buttons (for non-final steps) - Moved to bottom -->
     <div v-if="stepKey !== 'final' && hasAnyData" class="step-actions-inline">
-      <VaButton size="small" color="success" icon="check" @click="handleAcceptStep"> Accept </VaButton>
+      <VaButton v-if="!isStepCompleted" size="small" color="success" icon="check" @click="handleAcceptStep">
+        Verify
+      </VaButton>
       <VaButton size="small" color="danger" icon="close" preset="outline" @click="handleRejectStep"> Reject </VaButton>
     </div>
 
@@ -149,6 +151,14 @@ const verifiedFields = computed(() => props.stepData?.verified_fields || [])
 const issues = computed(() => props.stepData?.issues || [])
 const requiredFields = computed(() => props.stepData?.required_fields || [])
 // const status = computed(() => props.stepData?.status || 'pending')
+
+const isStepCompleted = computed(() => {
+  return (
+    props.stepData?.status === 'complete' ||
+    props.stepData?.status === 'verified' ||
+    props.verification?.status === 'verified'
+  )
+})
 
 const allStepsStatus = computed(() => {
   if (props.stepKey !== 'final') return []

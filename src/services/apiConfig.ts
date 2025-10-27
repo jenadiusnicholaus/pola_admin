@@ -354,22 +354,71 @@ export const API_ENDPOINTS = {
           id: String(id),
         }),
     },
-    // Materials Management
+    // Materials Management (under documents, not hubs)
     materials: {
+      list: () => buildUrl(import.meta.env.VITE_HUBS_MATERIALS || '/admin/documents/materials/'),
       detail: (id: number) =>
-        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_DETAIL || '/admin/hubs/materials/{id}/', { id: String(id) }),
-      approve: (id: number) =>
-        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_APPROVE || '/admin/hubs/materials/{id}/approve/', {
+        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_DETAIL || '/admin/documents/materials/{id}/', {
           id: String(id),
         }),
-      reject: (id: number) =>
-        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_REJECT || '/admin/hubs/materials/{id}/reject/', {
+      approve: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_APPROVE || '/admin/documents/materials/{id}/approve/', {
           id: String(id),
         }),
       toggle: (id: number) =>
-        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_TOGGLE || '/admin/hubs/materials/{id}/toggle/', {
+        buildUrl(import.meta.env.VITE_HUBS_MATERIALS_TOGGLE || '/admin/documents/materials/{id}/toggle_active/', {
           id: String(id),
         }),
+    },
+    // Hub Forums/Content Management
+    content: {
+      stats: () => buildUrl(import.meta.env.VITE_HUBS_CONTENT_STATS || '/admin/hubs/hub-content/statistics/'),
+      list: () => buildUrl(import.meta.env.VITE_HUBS_CONTENT_LIST || '/admin/hubs/hub-content/'),
+      create: () => buildUrl(import.meta.env.VITE_HUBS_CONTENT_CREATE || '/admin/hubs/hub-content/'),
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_DETAIL || '/admin/hubs/hub-content/{id}/', { id: String(id) }),
+      update: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_UPDATE || '/admin/hubs/hub-content/{id}/', { id: String(id) }),
+      pin: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_PIN || '/admin/hubs/hub-content/{id}/pin/', { id: String(id) }),
+      unpin: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_UNPIN || '/admin/hubs/hub-content/{id}/unpin/', {
+          id: String(id),
+        }),
+      toggle: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_TOGGLE || '/admin/hubs/hub-content/{id}/toggle_active/', {
+          id: String(id),
+        }),
+      bulkDelete: () =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_BULK_DELETE || '/admin/hubs/hub-content/bulk_delete/'),
+      bulkToggle: () =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_BULK_TOGGLE || '/admin/hubs/hub-content/bulk_toggle_active/'),
+      bulkPin: () => buildUrl(import.meta.env.VITE_HUBS_CONTENT_BULK_PIN || '/admin/hubs/hub-content/bulk_pin/'),
+      // Engagement endpoints
+      comments: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_COMMENTS || '/admin/hubs/hub-content/{id}/comments/', {
+          id: String(id),
+        }),
+      likes: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_LIKES || '/admin/hubs/hub-content/{id}/likes/', {
+          id: String(id),
+        }),
+      bookmarks: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_BOOKMARKS || '/admin/hubs/hub-content/{id}/bookmarks/', {
+          id: String(id),
+        }),
+      engagement: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_CONTENT_ENGAGEMENT || '/admin/hubs/hub-content/{id}/engagement/', {
+          id: String(id),
+        }),
+    },
+    // Hub Comments Management
+    comments: {
+      list: () => buildUrl(import.meta.env.VITE_HUBS_COMMENTS_LIST || '/admin/hubs/hub-comments/'),
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_HUBS_COMMENTS_DETAIL || '/admin/hubs/hub-comments/{id}/', { id: String(id) }),
+      bulkDelete: () =>
+        buildUrl(import.meta.env.VITE_HUBS_COMMENTS_BULK_DELETE || '/admin/hubs/hub-comments/bulk_delete/'),
     },
   },
 }

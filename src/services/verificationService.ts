@@ -13,6 +13,96 @@ const REJECT_ENDPOINT = import.meta.env.VITE_ADMIN_VERIFICATION_REJECT
 const VERIFY_DOC_ENDPOINT = import.meta.env.VITE_ADMIN_VERIFICATION_VERIFY_DOC
 const VERIFICATIONS_DETAIL_ENDPOINT = import.meta.env.VITE_VERIFICATIONS_DETAIL
 
+// Helper function to get authorization headers
+const getAuthHeaders = () => {
+  const accessTokenStr = localStorage.getItem('access')
+  if (accessTokenStr) {
+    try {
+      const token = JSON.parse(accessTokenStr)
+      return {
+        Authorization: `Bearer ${token}`,
+      }
+    } catch (error) {
+      console.error('Failed to parse access token:', error)
+      return {}
+    }
+  }
+  return {}
+}
+
+// Mock data for testing/development
+const mockVerifications = [
+  {
+    id: 1,
+    user_id: 1,
+    user_name: 'John Doe',
+    user_email: 'john@example.com',
+    user_phone: '+1234567890',
+    user_role: { display: 'Advocate', value: 'advocate' },
+    status: 'pending' as const,
+    status_display: 'Pending Review',
+    current_step: 'documents',
+    current_step_display: 'Document Review',
+    progress: 40,
+    days_since_registration: 5,
+    documents_summary: {
+      total: 5,
+      verified: 2,
+      pending: 3,
+      rejected: 0,
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    user_id: 2,
+    user_name: 'Jane Smith',
+    user_email: 'jane@example.com',
+    user_phone: '+1234567891',
+    user_role: { display: 'Lawyer', value: 'lawyer' },
+    status: 'verified' as const,
+    status_display: 'Verified',
+    current_step: 'completed',
+    current_step_display: 'Completed',
+    progress: 100,
+    days_since_registration: 12,
+    documents_summary: {
+      total: 4,
+      verified: 4,
+      pending: 0,
+      rejected: 0,
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 3,
+    user_id: 3,
+    user_name: 'Mike Johnson',
+    user_email: 'mike@example.com',
+    user_phone: '+1234567892',
+    user_role: { display: 'Paralegal', value: 'paralegal' },
+    status: 'rejected' as const,
+    status_display: 'Rejected',
+    current_step: 'documents',
+    current_step_display: 'Document Issues',
+    progress: 20,
+    days_since_registration: 8,
+    documents_summary: {
+      total: 3,
+      verified: 0,
+      pending: 0,
+      rejected: 3,
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+]
+
+// Development mode flag - set to true to use mock data
+const USE_MOCK_DATA = import.meta.env.MODE === 'development' && import.meta.env.VITE_USE_MOCK_VERIFICATION === 'true'
+
 // Additional endpoints
 const DOCUMENTS_ENDPOINT = import.meta.env.VITE_DOCUMENTS_ENDPOINT
 const DOCUMENT_VERIFY_ENDPOINT = import.meta.env.VITE_DOCUMENT_VERIFY_ENDPOINT
@@ -164,6 +254,7 @@ export const verificationService = {
     const params: IRequestParams = {
       url: `${API_BASE_URL}${STATISTICS_ENDPOINT}`,
       method: 'GET',
+      headers: getAuthHeaders(),
     }
 
     const response = await makeRequest(params)
@@ -187,6 +278,7 @@ export const verificationService = {
       url: `${API_BASE_URL}${VERIFICATIONS_ALL_ENDPOINT}`,
       method: 'GET',
       params: queryParams,
+      headers: getAuthHeaders(),
     }
 
     const response = await makeRequest(params)
@@ -197,6 +289,7 @@ export const verificationService = {
     const params: IRequestParams = {
       url: `${API_BASE_URL}${PENDING_DOCS_ENDPOINT}`,
       method: 'GET',
+      headers: getAuthHeaders(),
     }
 
     const response = await makeRequest(params)
@@ -207,6 +300,7 @@ export const verificationService = {
     const params: IRequestParams = {
       url: API_ENDPOINTS.verifications.verifyStep(verificationId),
       method: 'POST',
+      headers: getAuthHeaders(),
       data: {
         step,
         notes,
@@ -261,6 +355,7 @@ export const verificationService = {
     const params: IRequestParams = {
       url: API_ENDPOINTS.documents.verify(documentId),
       method: 'POST',
+      headers: getAuthHeaders(),
       data: {
         status: 'verified',
         notes,
@@ -275,6 +370,7 @@ export const verificationService = {
     const params: IRequestParams = {
       url: API_ENDPOINTS.documents.reject(documentId),
       method: 'POST',
+      headers: getAuthHeaders(),
       data: {
         reason,
       },

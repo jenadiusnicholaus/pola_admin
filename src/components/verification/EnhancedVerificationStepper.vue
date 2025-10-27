@@ -348,33 +348,13 @@
           <h3>Document Preview</h3>
           <div class="preview-container">
             <div v-if="getDocumentUrl(selectedDocument)" class="preview-wrapper">
-              <!-- PDF Preview -->
+              <!-- PDF Preview using VuePDF -->
               <div v-if="isPdfFile(getDocumentUrl(selectedDocument))" class="pdf-preview-container">
-                <!-- Try object embed first -->
-                <object
-                  :data="getDocumentUrl(selectedDocument)"
-                  type="application/pdf"
-                  width="100%"
-                  height="600px"
-                  class="document-pdf-object"
-                >
-                  <!-- Fallback if object fails -->
-                  <div class="pdf-fallback">
-                    <VaIcon name="picture_as_pdf" size="4rem" color="danger" />
-                    <p class="fallback-title">PDF Preview Not Available</p>
-                    <p class="fallback-message">
-                      Your browser cannot display PDFs inline. Please use one of the options below:
-                    </p>
-                    <div class="fallback-actions">
-                      <VaButton color="primary" @click="openInNewTab(selectedDocument)">
-                        <VaIcon name="open_in_new" /> Open in New Tab
-                      </VaButton>
-                      <VaButton color="secondary" @click="downloadDocument(selectedDocument)">
-                        <VaIcon name="download" /> Download PDF
-                      </VaButton>
-                    </div>
-                  </div>
-                </object>
+                <VuePDF v-if="viewerPdf" :pdf="viewerPdf" />
+                <div v-else class="pdf-loading">
+                  <VaProgressCircle indeterminate />
+                  <p>Loading PDF...</p>
+                </div>
               </div>
               <!-- Image Preview -->
               <img
@@ -438,6 +418,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from 'vuestic-ui'
+import { VuePDF, usePDF } from '@tato30/vue-pdf'
 import { useVerificationStore } from '../../stores/verification-store'
 import type { VerificationUser } from '../../services/verificationService'
 import VerificationProgressBar from './VerificationProgressBar.vue'
@@ -470,6 +451,27 @@ const isApprovingDocument = ref<number | null>(null)
 const showRejectDocumentDialog = ref(false)
 const rejectingDocument = ref<any>(null)
 const documentRejectReason = ref('')
+
+// PDF loading state
+const viewerPdfSrc = ref<string>('')
+const { pdf: viewerPdf } = usePDF(viewerPdfSrc)
+
+// Watch for changes in selected document to load PDF
+watch(
+  () => selectedDocument.value,
+  (newDoc) => {
+    if (newDoc) {
+      const url = getDocumentUrl(newDoc)
+      if (url && isPdfFile(url)) {
+        viewerPdfSrc.value = url
+      } else {
+        viewerPdfSrc.value = ''
+      }
+    } else {
+      viewerPdfSrc.value = ''
+    }
+  },
+)
 
 const verificationSteps = [
   {
@@ -1819,7 +1821,27 @@ onMounted(() => {
 .pdf-preview-container {
   width: 100%;
   min-height: 600px;
-  background: white;
+  max-height: 800px;
+  overflow-y: auto;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.pdf-preview-container canvas {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
+}
+
+.pdf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  min-height: 400px;
 }
 
 .document-pdf-object {

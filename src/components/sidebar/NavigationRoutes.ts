@@ -214,6 +214,10 @@ export default {
           name: 'legal-education',
           displayName: 'menu.legalEducation',
         },
+        {
+          name: 'hub-forums',
+          displayName: 'menu.hubForums',
+        },
       ],
     },
     {

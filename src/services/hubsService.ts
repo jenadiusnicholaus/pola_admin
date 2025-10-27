@@ -542,32 +542,39 @@ export const hubsService = {
 
   /**
    * Approve material
-   * Endpoint: POST /api/v1/admin/hubs/materials/{id}/approve/
+   * Endpoint: POST /api/v1/admin/documents/materials/{id}/approve/
    */
-  approveMaterial: async (id: number): Promise<void> => {
+  approveMaterial: async (id: number, note?: string): Promise<void> => {
     const params: IRequestParams = {
       url: API_ENDPOINTS.hubs.materials.approve(id),
       method: 'POST',
+      data: {
+        is_approved: true,
+        admin_note: note,
+      },
     }
     await makeRequest(params)
   },
 
   /**
    * Reject material
-   * Endpoint: POST /api/v1/admin/hubs/materials/{id}/reject/
+   * Endpoint: POST /api/v1/admin/documents/materials/{id}/approve/
    */
   rejectMaterial: async (id: number, reason?: string): Promise<void> => {
     const params: IRequestParams = {
-      url: API_ENDPOINTS.hubs.materials.reject(id),
+      url: API_ENDPOINTS.hubs.materials.approve(id),
       method: 'POST',
-      data: reason ? { reason } : undefined,
+      data: {
+        is_approved: false,
+        admin_note: reason,
+      },
     }
     await makeRequest(params)
   },
 
   /**
    * Toggle material active status
-   * Endpoint: POST /api/v1/admin/hubs/materials/{id}/toggle/
+   * Endpoint: POST /api/v1/admin/documents/materials/{id}/toggle_active/
    */
   toggleMaterial: async (id: number): Promise<void> => {
     const params: IRequestParams = {
@@ -578,8 +585,37 @@ export const hubsService = {
   },
 
   /**
+   * Update material
+   * Endpoint: PATCH /api/v1/admin/documents/materials/{id}/
+   */
+  updateMaterial: async (id: number, data: any): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.materials.detail(id),
+      method: 'PATCH',
+      data,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Create material for subtopic
+   * Endpoint: POST /api/v1/admin/documents/materials/
+   * Sends JSON with base64 encoded file
+   */
+  createMaterial: async (data: any): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.materials.list(),
+      method: 'POST',
+      data,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
    * Delete material
-   * Endpoint: DELETE /api/v1/admin/hubs/materials/{id}/
+   * Endpoint: DELETE /api/v1/admin/documents/materials/{id}/
    */
   deleteMaterial: async (id: number): Promise<void> => {
     const params: IRequestParams = {
@@ -587,6 +623,261 @@ export const hubsService = {
       method: 'DELETE',
     }
     await makeRequest(params)
+  },
+
+  // ========================================
+  // Hub Forums/Content Management
+  // ========================================
+
+  /**
+   * Get hub content statistics
+   * Endpoint: GET /api/v1/admin/hubs/hub-content/statistics/
+   */
+  getContentStatistics: async (hubType?: string, days?: number): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.stats(),
+      method: 'GET',
+      params: {
+        ...(hubType && { hub_type: hubType }),
+        ...(days && { days }),
+      },
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Get hub content list with filters
+   * Endpoint: GET /api/v1/admin/hubs/hub-content/
+   */
+  getContentList: async (filters?: any): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.list(),
+      method: 'GET',
+      params: filters,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Pin content
+   * Endpoint: POST /api/v1/admin/hubs/hub-content/{id}/pin/
+   */
+  pinContent: async (id: number): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.pin(id),
+      method: 'POST',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Unpin content
+   * Endpoint: POST /api/v1/admin/hubs/hub-content/{id}/unpin/
+   */
+  unpinContent: async (id: number): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.unpin(id),
+      method: 'POST',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Toggle content active status
+   * Endpoint: POST /api/v1/admin/hubs/hub-content/{id}/toggle_active/
+   */
+  toggleContent: async (id: number): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.toggle(id),
+      method: 'POST',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Delete content
+   * Endpoint: DELETE /api/v1/admin/hubs/hub-content/{id}/
+   */
+  deleteContent: async (id: number): Promise<void> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.detail(id),
+      method: 'DELETE',
+    }
+    await makeRequest(params)
+  },
+
+  /**
+   * Create new content
+   * Endpoint: POST /api/v1/admin/hubs/hub-content/
+   */
+  createContent: async (data: any): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.create(),
+      method: 'POST',
+      data,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Update content (PATCH - partial update)
+   * Endpoint: PATCH /api/v1/admin/hubs/hub-content/{id}/
+   */
+  updateContent: async (id: number, data: any): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.update(id),
+      method: 'PATCH',
+      data,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Bulk delete content
+   * Endpoint: POST /api/v1/admin/hubs/hub-content/bulk_delete/
+   */
+  bulkDeleteContent: async (contentIds: number[]): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.bulkDelete(),
+      method: 'POST',
+      data: { content_ids: contentIds },
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Bulk toggle content active status
+   * Endpoint: POST /api/v1/admin/hubs/hub-content/bulk_toggle_active/
+   */
+  bulkToggleContent: async (contentIds: number[], isActive: boolean): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.bulkToggle(),
+      method: 'POST',
+      data: { content_ids: contentIds, is_active: isActive },
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Bulk pin/unpin content
+   * Endpoint: POST /api/v1/admin/hubs/hub-content/bulk_pin/
+   */
+  bulkPinContent: async (contentIds: number[], isPinned: boolean): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.bulkPin(),
+      method: 'POST',
+      data: { content_ids: contentIds, is_pinned: isPinned },
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Get comments list with filters
+   * Endpoint: GET /api/v1/admin/hubs/hub-comments/
+   */
+  getCommentsList: async (filters?: any): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.comments.list(),
+      method: 'GET',
+      params: filters,
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Delete comment
+   * Endpoint: DELETE /api/v1/admin/hubs/hub-comments/{id}/
+   */
+  deleteComment: async (id: number): Promise<void> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.comments.detail(id),
+      method: 'DELETE',
+    }
+    await makeRequest(params)
+  },
+
+  /**
+   * Bulk delete comments
+   * Endpoint: POST /api/v1/admin/hubs/hub-comments/bulk_delete/
+   */
+  bulkDeleteComments: async (commentIds: number[]): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.comments.bulkDelete(),
+      method: 'POST',
+      data: { comment_ids: commentIds },
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  // ========================================
+  // Hub Content Engagement
+  // ========================================
+
+  /**
+   * Get content comments
+   * Endpoint: GET /api/v1/admin/hubs/hub-content/{id}/comments/
+   */
+  getContentComments: async (contentId: number, params?: any): Promise<any> => {
+    const requestParams: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.comments(contentId),
+      method: 'GET',
+      params,
+    }
+    const response = await makeRequest(requestParams)
+    return response.data
+  },
+
+  /**
+   * Get content likes
+   * Endpoint: GET /api/v1/admin/hubs/hub-content/{id}/likes/
+   */
+  getContentLikes: async (contentId: number, params?: any): Promise<any> => {
+    const requestParams: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.likes(contentId),
+      method: 'GET',
+      params,
+    }
+    const response = await makeRequest(requestParams)
+    return response.data
+  },
+
+  /**
+   * Get content bookmarks
+   * Endpoint: GET /api/v1/admin/hubs/hub-content/{id}/bookmarks/
+   */
+  getContentBookmarks: async (contentId: number, params?: any): Promise<any> => {
+    const requestParams: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.bookmarks(contentId),
+      method: 'GET',
+      params,
+    }
+    const response = await makeRequest(requestParams)
+    return response.data
+  },
+
+  /**
+   * Get content engagement summary
+   * Endpoint: GET /api/v1/admin/hubs/hub-content/{id}/engagement/
+   */
+  getContentEngagement: async (contentId: number): Promise<any> => {
+    const params: IRequestParams = {
+      url: API_ENDPOINTS.hubs.content.engagement(contentId),
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
   },
 }
 

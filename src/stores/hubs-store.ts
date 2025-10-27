@@ -44,10 +44,29 @@ export const useHubsStore = defineStore('hubs', {
       avg_materials_per_subtopic: 0,
     } as SubtopicStatistics,
 
+    // Hub Forums/Content
+    hubContent: [] as any[],
+    hubContentStatistics: {
+      total_content: 0,
+      active_content: 0,
+      inactive_content: 0,
+      pinned_content: 0,
+      total_likes: 0,
+      total_comments: 0,
+      total_views: 0,
+      total_revenue: 0,
+      by_hub_type: {} as Record<string, number>,
+      by_content_type: {} as Record<string, number>,
+    },
+    hubComments: [] as any[],
+    selectedHubType: null as string | null,
+
     // Loading states
     loading: false,
     loadingSubtopics: false,
     loadingMaterials: false,
+    loadingHubContent: false,
+    loadingHubComments: false,
   }),
 
   getters: {
@@ -422,6 +441,100 @@ export const useHubsStore = defineStore('hubs', {
     },
 
     /**
+     * Update material
+     */
+    async updateMaterial(materialId: number, data: any) {
+      try {
+        const updatedMaterial = await hubsService.updateMaterial(materialId, data)
+
+        // Update the material in the local state
+        const index = this.subtopicMaterials.findIndex((m) => m.id === materialId)
+        if (index !== -1) {
+          this.subtopicMaterials[index] = { ...this.subtopicMaterials[index], ...updatedMaterial }
+        }
+
+        return updatedMaterial
+      } catch (error) {
+        console.error('Failed to update material:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Create material for subtopic
+     */
+    async createMaterial(data: {
+      title: string
+      description: string
+      subtopic: number
+      category: string
+      price: string | number
+      uploader_type: string
+      file?: string // base64 encoded file
+      language?: string
+      content_type?: string
+      rich_text_content?: string
+      is_downloadable?: boolean
+      is_approved?: boolean
+      is_active?: boolean
+    }) {
+      try {
+        // Prepare JSON data
+        const materialData: any = {
+          title: data.title,
+          description: data.description,
+          subtopic: data.subtopic,
+          category: data.category,
+          price: typeof data.price === 'string' ? parseFloat(data.price) : data.price,
+          uploader_type: data.uploader_type,
+        }
+
+        // Add optional fields only if they have values
+        if (data.content_type) {
+          materialData.content_type = data.content_type
+        }
+
+        if (data.language) {
+          materialData.language = data.language
+        }
+
+        if (data.file) {
+          materialData.file = data.file
+        }
+
+        if (data.rich_text_content) {
+          materialData.rich_text_content = data.rich_text_content
+        }
+
+        if (data.is_downloadable !== undefined) {
+          materialData.is_downloadable = data.is_downloadable
+        }
+
+        if (data.is_approved !== undefined) {
+          materialData.is_approved = data.is_approved
+        }
+
+        if (data.is_active !== undefined) {
+          materialData.is_active = data.is_active
+        }
+
+        console.log('Sending material data:', { ...materialData, file: materialData.file ? 'base64...' : undefined })
+
+        const newMaterial = await hubsService.createMaterial(materialData)
+
+        // Refresh materials list for the current subtopic
+        if (this.selectedSubtopic?.id) {
+          await this.fetchSubtopicMaterials(this.selectedSubtopic.id)
+        }
+
+        return newMaterial
+      } catch (error) {
+        console.error('Failed to create material:', error)
+        throw error
+      }
+    },
+
+    /**
      * Delete material
      */
     async deleteMaterial(materialId: number) {
@@ -442,6 +555,277 @@ export const useHubsStore = defineStore('hubs', {
      */
     clearMaterials() {
       this.subtopicMaterials = []
+    },
+
+    // ==================== Hub Forums/Content Actions ====================
+
+    /**
+     * Fetch hub content statistics
+     */
+    async fetchContentStatistics(hubType?: string, days?: number) {
+      this.loadingHubContent = true
+      try {
+        this.hubContentStatistics = await hubsService.getContentStatistics(hubType, days)
+      } catch (error) {
+        console.error('Failed to fetch content statistics:', error)
+        throw error
+      } finally {
+        this.loadingHubContent = false
+      }
+    },
+
+    /**
+     * Fetch hub content list with filters
+     */
+    async fetchHubContent(filters?: any) {
+      this.loadingHubContent = true
+      try {
+        const response = await hubsService.getContentList(filters)
+        this.hubContent = response.results || response
+        return response
+      } catch (error) {
+        console.error('Failed to fetch hub content:', error)
+        throw error
+      } finally {
+        this.loadingHubContent = false
+      }
+    },
+
+    /**
+     * Pin content
+     */
+    async pinContent(contentId: number) {
+      try {
+        const updatedContent = await hubsService.pinContent(contentId)
+        const index = this.hubContent.findIndex((c) => c.id === contentId)
+        if (index !== -1) {
+          this.hubContent[index] = { ...this.hubContent[index], ...updatedContent }
+        }
+        return updatedContent
+      } catch (error) {
+        console.error('Failed to pin content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Unpin content
+     */
+    async unpinContent(contentId: number) {
+      try {
+        const updatedContent = await hubsService.unpinContent(contentId)
+        const index = this.hubContent.findIndex((c) => c.id === contentId)
+        if (index !== -1) {
+          this.hubContent[index] = { ...this.hubContent[index], ...updatedContent }
+        }
+        return updatedContent
+      } catch (error) {
+        console.error('Failed to unpin content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Toggle content active status
+     */
+    async toggleContentActive(contentId: number) {
+      try {
+        const updatedContent = await hubsService.toggleContent(contentId)
+        const index = this.hubContent.findIndex((c) => c.id === contentId)
+        if (index !== -1) {
+          this.hubContent[index] = { ...this.hubContent[index], ...updatedContent }
+        }
+        return updatedContent
+      } catch (error) {
+        console.error('Failed to toggle content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Create new content
+     */
+    async createHubContent(data: any) {
+      try {
+        const newContent = await hubsService.createContent(data)
+        // Add to local state
+        this.hubContent.unshift(newContent.data)
+        return newContent
+      } catch (error) {
+        console.error('Failed to create content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Delete content
+     */
+    async deleteContent(contentId: number) {
+      try {
+        await hubsService.deleteContent(contentId)
+        const index = this.hubContent.findIndex((c) => c.id === contentId)
+        if (index !== -1) {
+          this.hubContent.splice(index, 1)
+        }
+      } catch (error) {
+        console.error('Failed to delete content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Update content
+     */
+    async updateHubContent(contentId: number, updateData: any) {
+      try {
+        const updatedContent = await hubsService.updateContent(contentId, updateData)
+        // Update in local state
+        const index = this.hubContent.findIndex((c) => c.id === contentId)
+        if (index !== -1) {
+          this.hubContent[index] = { ...this.hubContent[index], ...updatedContent.data }
+        }
+        return updatedContent
+      } catch (error) {
+        console.error('Failed to update content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Bulk delete content
+     */
+    async bulkDeleteContent(contentIds: number[]) {
+      try {
+        await hubsService.bulkDeleteContent(contentIds)
+        this.hubContent = this.hubContent.filter((c) => !contentIds.includes(c.id))
+      } catch (error) {
+        console.error('Failed to bulk delete content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Bulk toggle content active status
+     */
+    async bulkToggleContent(contentIds: number[], isActive: boolean) {
+      try {
+        await hubsService.bulkToggleContent(contentIds, isActive)
+        // Update local state
+        this.hubContent = this.hubContent.map((c) => (contentIds.includes(c.id) ? { ...c, is_active: isActive } : c))
+      } catch (error) {
+        console.error('Failed to bulk toggle content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Bulk pin/unpin content
+     */
+    async bulkPinContent(contentIds: number[], isPinned: boolean) {
+      try {
+        await hubsService.bulkPinContent(contentIds, isPinned)
+        // Update local state
+        this.hubContent = this.hubContent.map((c) => (contentIds.includes(c.id) ? { ...c, is_pinned: isPinned } : c))
+      } catch (error) {
+        console.error('Failed to bulk pin content:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Fetch comments list
+     */
+    async fetchComments(filters?: any) {
+      this.loadingHubComments = true
+      try {
+        const response = await hubsService.getCommentsList(filters)
+        this.hubComments = response.results || response
+        return response
+      } catch (error) {
+        console.error('Failed to fetch comments:', error)
+        throw error
+      } finally {
+        this.loadingHubComments = false
+      }
+    },
+
+    /**
+     * Delete comment
+     */
+    async deleteComment(commentId: number) {
+      try {
+        await hubsService.deleteComment(commentId)
+        const index = this.hubComments.findIndex((c) => c.id === commentId)
+        if (index !== -1) {
+          this.hubComments.splice(index, 1)
+        }
+      } catch (error) {
+        console.error('Failed to delete comment:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Bulk delete comments
+     */
+    async bulkDeleteComments(commentIds: number[]) {
+      try {
+        await hubsService.bulkDeleteComments(commentIds)
+        this.hubComments = this.hubComments.filter((c) => !commentIds.includes(c.id))
+      } catch (error) {
+        console.error('Failed to bulk delete comments:', error)
+        throw error
+      }
+    },
+
+    // ==================== Content Engagement Actions ====================
+
+    /**
+     * Fetch content comments
+     */
+    async fetchContentComments(contentId: number, params?: any) {
+      try {
+        return await hubsService.getContentComments(contentId, params)
+      } catch (error) {
+        console.error('Failed to fetch content comments:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Fetch content likes
+     */
+    async fetchContentLikes(contentId: number, params?: any) {
+      try {
+        return await hubsService.getContentLikes(contentId, params)
+      } catch (error) {
+        console.error('Failed to fetch content likes:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Fetch content bookmarks
+     */
+    async fetchContentBookmarks(contentId: number, params?: any) {
+      try {
+        return await hubsService.getContentBookmarks(contentId, params)
+      } catch (error) {
+        console.error('Failed to fetch content bookmarks:', error)
+        throw error
+      }
+    },
+
+    /**
+     * Fetch content engagement summary
+     */
+    async fetchContentEngagement(contentId: number) {
+      try {
+        return await hubsService.getContentEngagement(contentId)
+      } catch (error) {
+        console.error('Failed to fetch content engagement:', error)
+        throw error
+      }
     },
   },
 })

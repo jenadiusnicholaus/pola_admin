@@ -381,75 +381,6 @@ const handlePerPageChange = (newPerPage: number) => {
   refreshData()
 }
 
-const mockVerifications = [
-  {
-    id: 1,
-    user_id: 1,
-    user_name: 'John Doe',
-    user_email: 'john@example.com',
-    user_phone: '+1234567890',
-    user_role: { display: 'Advocate', value: 'advocate' },
-    status: 'pending' as const,
-    status_display: 'Pending Review',
-    current_step: 'documents',
-    current_step_display: 'Document Review',
-    progress: 40,
-    days_since_registration: 5,
-    documents_summary: {
-      total: 5,
-      verified: 2,
-      pending: 3,
-      rejected: 0,
-    },
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    user_id: 2,
-    user_name: 'Jane Smith',
-    user_email: 'jane@example.com',
-    user_phone: '+1234567891',
-    user_role: { display: 'Lawyer', value: 'lawyer' },
-    status: 'verified' as const,
-    status_display: 'Verified',
-    current_step: 'completed',
-    current_step_display: 'Completed',
-    progress: 100,
-    days_since_registration: 12,
-    documents_summary: {
-      total: 4,
-      verified: 4,
-      pending: 0,
-      rejected: 0,
-    },
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    user_id: 3,
-    user_name: 'Mike Johnson',
-    user_email: 'mike@example.com',
-    user_phone: '+1234567892',
-    user_role: { display: 'Paralegal', value: 'paralegal' },
-    status: 'rejected' as const,
-    status_display: 'Rejected',
-    current_step: 'documents',
-    current_step_display: 'Document Issues',
-    progress: 20,
-    days_since_registration: 8,
-    documents_summary: {
-      total: 3,
-      verified: 0,
-      pending: 0,
-      rejected: 3,
-    },
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-]
-
 const getBadgeColor = (status: string) => {
   switch (status) {
     case 'verified':
@@ -484,46 +415,23 @@ const refreshData = async () => {
     await verificationStore.fetchVerifications(currentPage.value, status, perPage.value)
 
     // Update paginated data with the response
-    if (verificationStore.verifications.length > 0) {
-      paginatedData.value = {
-        count: verificationStore.pagination.totalCount || verificationStore.verifications.length,
-        results: verificationStore.verifications,
-        next: currentPage.value < verificationStore.pagination.totalPages ? `page=${currentPage.value + 1}` : null,
-        previous: currentPage.value > 1 ? `page=${currentPage.value - 1}` : null,
-      }
-    } else {
-      // Use mock data for demo if no real data
-      console.log('📊 Using mock data. Filter:', selectedFilter.value)
-      const mockData = getMockPaginatedData()
-      console.log('📊 Mock data results:', mockData.results.length, 'Total:', mockData.count)
-      paginatedData.value = mockData
+    paginatedData.value = {
+      count: verificationStore.pagination.totalCount || verificationStore.verifications.length,
+      results: verificationStore.verifications,
+      next: currentPage.value < verificationStore.pagination.totalPages ? `page=${currentPage.value + 1}` : null,
+      previous: currentPage.value > 1 ? `page=${currentPage.value - 1}` : null,
     }
   } catch (error) {
     console.error('Failed to fetch verifications:', error)
-    // Fallback to mock data
-    console.log('📊 Error fallback - using mock data. Filter:', selectedFilter.value)
-    const mockData = getMockPaginatedData()
-    console.log('📊 Mock data results:', mockData.results.length, 'Total:', mockData.count)
-    paginatedData.value = mockData
+    // Reset to empty data on error
+    paginatedData.value = {
+      count: 0,
+      results: [],
+      next: null,
+      previous: null,
+    }
   } finally {
     isLoading.value = false
-  }
-}
-
-const getMockPaginatedData = () => {
-  const allMockData = mockVerifications
-  const filteredData =
-    selectedFilter.value === 'all' ? allMockData : allMockData.filter((v) => v.status === selectedFilter.value)
-
-  const startIndex = (currentPage.value - 1) * perPage.value
-  const endIndex = startIndex + perPage.value
-  const paginatedResults = filteredData.slice(startIndex, endIndex)
-
-  return {
-    count: filteredData.length,
-    results: paginatedResults,
-    next: endIndex < filteredData.length ? `page=${currentPage.value + 1}` : null,
-    previous: startIndex > 0 ? `page=${currentPage.value - 1}` : null,
   }
 }
 

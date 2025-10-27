@@ -164,6 +164,11 @@ const routes: Array<RouteRecordRaw> = [
             path: 'legal-education/:topicId/subtopics/:subtopicId/materials',
             component: () => import('../pages/hubs/MaterialsPage.vue'),
           },
+          {
+            name: 'hub-forums',
+            path: 'forums',
+            component: () => import('../pages/hubs/HubForumsPage.vue'),
+          },
         ],
       },
       {
