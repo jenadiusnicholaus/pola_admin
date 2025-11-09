@@ -2,7 +2,23 @@
 
 import { defineStore } from 'pinia'
 import { sleep } from '../services/utils'
-import { PaymentSystemType, PaymentCard } from '../pages/payments/types' // adjust the import path accordingly
+
+// Type definitions
+export enum PaymentSystemType {
+  Visa = 'visa',
+  Mastercard = 'mastercard',
+  Amex = 'amex',
+  Discover = 'discover',
+}
+
+export interface PaymentCard {
+  id: string
+  name: string
+  isPrimary: boolean
+  paymentSystem: PaymentSystemType
+  cardNumberMasked: string
+  expirationDate: string
+}
 
 // Simulated fetch function
 const fetchPaymentCards = async () => {
@@ -20,7 +36,7 @@ const fetchPaymentCards = async () => {
       id: '2',
       name: 'Online shopping',
       isPrimary: false,
-      paymentSystem: PaymentSystemType.MasterCard,
+      paymentSystem: PaymentSystemType.Mastercard,
       cardNumberMasked: '****8921',
       expirationDate: '1123',
     },
@@ -28,7 +44,7 @@ const fetchPaymentCards = async () => {
       id: '3',
       name: 'Backup Visa',
       isPrimary: false,
-      paymentSystem: PaymentSystemType.MasterCard,
+      paymentSystem: PaymentSystemType.Mastercard,
       cardNumberMasked: '****4523',
       expirationDate: '1222',
     },
@@ -42,7 +58,8 @@ export const usePaymentCardsStore = defineStore({
     loading: false,
   }),
   getters: {
-    currentPaymentCard: (state): PaymentCard | undefined => state.paymentCards.find((card) => card.isPrimary),
+    currentPaymentCard: (state): PaymentCard | undefined =>
+      state.paymentCards.find((card: PaymentCard) => card.isPrimary),
     allPaymentCards: (state) => state.paymentCards,
   },
   actions: {
@@ -55,13 +72,13 @@ export const usePaymentCardsStore = defineStore({
       this.paymentCards.unshift(card)
     },
     update(card: PaymentCard) {
-      const index = this.paymentCards.findIndex((existingCard) => existingCard.id === card.id)
+      const index = this.paymentCards.findIndex((existingCard: PaymentCard) => existingCard.id === card.id)
       if (index !== -1) {
         this.paymentCards.splice(index, 1, card)
       }
     },
     remove(cardId: string) {
-      this.paymentCards = this.paymentCards.filter((card) => card.id !== cardId)
+      this.paymentCards = this.paymentCards.filter((card: PaymentCard) => card.id !== cardId)
     },
   },
 })

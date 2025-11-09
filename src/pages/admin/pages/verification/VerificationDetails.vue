@@ -168,8 +168,14 @@
         <VaCardTitle>Address Information</VaCardTitle>
         <VaCardContent>
           <div class="address-info">
-            <p><strong>Street:</strong> {{ verification.user_address.street }}</p>
-            <p><strong>City:</strong> {{ verification.user_address.city }}</p>
+            <template v-if="'street' in verification.user_address">
+              <p><strong>Street:</strong> {{ verification.user_address.street }}</p>
+              <p><strong>City:</strong> {{ verification.user_address.city }}</p>
+            </template>
+            <template v-else>
+              <p><strong>Office Address:</strong> {{ verification.user_address.office_address }}</p>
+              <p><strong>Ward:</strong> {{ verification.user_address.ward }}</p>
+            </template>
             <p><strong>Region:</strong> {{ verification.user_address.region }}</p>
             <p><strong>District:</strong> {{ verification.user_address.district }}</p>
           </div>

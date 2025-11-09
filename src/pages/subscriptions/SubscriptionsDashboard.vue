@@ -7,7 +7,7 @@ import { useTransactions } from '../../composables/useTransactions'
 
 const router = useRouter()
 
-const { statistics: plansStats, fetchStatistics: fetchPlansStats } = usePlans()
+const { subscriptionStatistics: plansStats, fetchSubscriptionStatistics: fetchPlansStats } = usePlans()
 const { statistics: subsStats, fetchStatistics: fetchSubsStats } = useSubscriptions()
 const { statistics: transStats, fetchStatistics: fetchTransStats } = useTransactions()
 
@@ -39,8 +39,8 @@ const formatCurrency = (value: number | undefined): string => {
 }
 
 const getActivePercentage = (): number => {
-  if (!subsStats.value?.total_subscriptions || !subsStats.value?.active_subscriptions) return 0
-  return Math.round((subsStats.value.active_subscriptions / subsStats.value.total_subscriptions) * 100)
+  if (!subsStats.value?.total_subscribers || !subsStats.value?.active_subscribers) return 0
+  return Math.round((subsStats.value.active_subscribers / subsStats.value.total_subscribers) * 100)
 }
 
 const getPlansActivePercentage = (): number => {
@@ -114,11 +114,11 @@ const getPlansActivePercentage = (): number => {
                 <VaBadge text="View All" color="primary" />
               </div>
               <div class="metric-body">
-                <div class="metric-value">{{ formatNumber(subsStats?.total_subscriptions) }}</div>
-                <div class="metric-label">Total Subscriptions</div>
+                <div class="metric-value">{{ formatNumber(subsStats?.total_subscribers) }}</div>
+                <div class="metric-label">Total Subscribers</div>
                 <div class="metric-trend positive">
                   <VaIcon name="trending_up" size="small" />
-                  <span>+12% from last month</span>
+                  <span>+{{ subsStats?.growth_rate || 0 }}% growth rate</span>
                 </div>
               </div>
             </VaCardContent>
@@ -134,15 +134,15 @@ const getPlansActivePercentage = (): number => {
                 <VaBadge :text="`${getActivePercentage()}%`" color="success" />
               </div>
               <div class="metric-body">
-                <div class="metric-value">{{ formatNumber(subsStats?.active_subscriptions) }}</div>
-                <div class="metric-label">Active Subscriptions</div>
+                <div class="metric-value">{{ formatNumber(subsStats?.active_subscribers) }}</div>
+                <div class="metric-label">Active Subscribers</div>
                 <div class="metric-description">Currently paying customers</div>
               </div>
             </VaCardContent>
           </VaCard>
 
-          <!-- Expiring Soon -->
-          <VaCard class="metric-card clickable" @click="navigateTo('/subscriptions/subscriptions?status=expiring')">
+          <!-- Expired Subscribers -->
+          <VaCard class="metric-card clickable" @click="navigateTo('/subscriptions/subscriptions?status=expired')">
             <VaCardContent>
               <div class="metric-header">
                 <div class="metric-icon warning">
@@ -151,14 +151,14 @@ const getPlansActivePercentage = (): number => {
                 <VaBadge text="Action Required" color="warning" />
               </div>
               <div class="metric-body">
-                <div class="metric-value">{{ formatNumber(subsStats?.expiring_this_week) }}</div>
-                <div class="metric-label">Expiring This Week</div>
+                <div class="metric-value">{{ formatNumber(subsStats?.expired_subscribers) }}</div>
+                <div class="metric-label">Expired Subscribers</div>
                 <div class="metric-description">Requires retention action</div>
               </div>
             </VaCardContent>
           </VaCard>
 
-          <!-- Trial Subscriptions -->
+          <!-- Trial Users -->
           <VaCard class="metric-card">
             <VaCardContent>
               <div class="metric-header">
@@ -168,7 +168,7 @@ const getPlansActivePercentage = (): number => {
                 <VaBadge text="Trial" color="info" />
               </div>
               <div class="metric-body">
-                <div class="metric-value">{{ formatNumber(subsStats?.trial_subscriptions) }}</div>
+                <div class="metric-value">{{ formatNumber(subsStats?.trial_users) }}</div>
                 <div class="metric-label">Trial Users</div>
                 <div class="metric-description">Potential conversions</div>
               </div>
@@ -222,7 +222,7 @@ const getPlansActivePercentage = (): number => {
                       <VaIcon name="hourglass_empty" />
                     </div>
                     <div class="sub-stat-content">
-                      <div class="sub-stat-value">{{ formatNumber(transStats?.pending_transactions) }}</div>
+                      <div class="sub-stat-value">{{ formatNumber(transStats?.by_status?.pending?.count) }}</div>
                       <div class="sub-stat-label">Pending</div>
                     </div>
                   </div>
@@ -232,7 +232,9 @@ const getPlansActivePercentage = (): number => {
                       <VaIcon name="replay" />
                     </div>
                     <div class="sub-stat-content">
-                      <div class="sub-stat-value">{{ formatCurrency(transStats?.total_refunds) }}</div>
+                      <div class="sub-stat-value">
+                        {{ formatCurrency(transStats?.by_status?.refunded?.total_amount) }}
+                      </div>
                       <div class="sub-stat-label">Refunds</div>
                     </div>
                   </div>

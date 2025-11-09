@@ -24,9 +24,9 @@ export function useDocuments() {
   const error = ref<string | null>(null)
 
   // Computed properties
-  const pendingMaterials = computed(() => materials.value.filter((m) => m.status === 'pending'))
-  const approvedMaterials = computed(() => materials.value.filter((m) => m.status === 'approved'))
-  const rejectedMaterials = computed(() => materials.value.filter((m) => m.status === 'rejected'))
+  const pendingMaterials = computed(() => materials.value.filter((m) => m.is_approved === null))
+  const approvedMaterials = computed(() => materials.value.filter((m) => m.is_approved === true))
+  const rejectedMaterials = computed(() => materials.value.filter((m) => m.is_approved === false))
 
   /**
    * Fetch all materials with filters

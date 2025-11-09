@@ -1,6 +1,17 @@
 import { defineStore } from 'pinia'
 import { sleep } from '../services/utils'
-import { BillingAddress } from '../pages/payments/types' // adjust the import path accordingly
+
+// Type definition
+export interface BillingAddress {
+  id: string
+  name: string
+  isPrimary: boolean
+  street: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+}
 
 // Simulated fetch function
 const fetchBillingAddresses = async () => {
@@ -58,13 +69,13 @@ export const useBillingAddressesStore = defineStore({
       this.billingAddresses.unshift(address)
     },
     update(address: BillingAddress) {
-      const index = this.billingAddresses.findIndex((existingCard) => existingCard.id === address.id)
+      const index = this.billingAddresses.findIndex((existingCard: BillingAddress) => existingCard.id === address.id)
       if (index !== -1) {
         this.billingAddresses.splice(index, 1, address)
       }
     },
     remove(addressId: string) {
-      this.billingAddresses = this.billingAddresses.filter((address) => address.id !== addressId)
+      this.billingAddresses = this.billingAddresses.filter((address: BillingAddress) => address.id !== addressId)
     },
   },
 })

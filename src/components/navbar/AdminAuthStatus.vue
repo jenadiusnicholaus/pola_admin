@@ -18,15 +18,18 @@
           </VaListItem>
 
           <VaListItem @click="handleLogout">
-            <VaListItemSection icon="logout">
-              <VaListItemLabel>Logout</VaListItemLabel>
+            <VaListItemSection>
+              <VaListItemLabel>
+                <VaIcon name="logout" class="mr-2" />
+                Logout
+              </VaListItemLabel>
             </VaListItemSection>
           </VaListItem>
         </VaList>
       </VaDropdownContent>
     </VaDropdown>
 
-    <VaButton v-else color="secondary" class="login-button" @click="$router.push('/auth/admin-login')">
+    <VaButton v-else color="secondary" class="login-button" @click="router.push('/auth/admin-login')">
       Admin Login
     </VaButton>
   </div>

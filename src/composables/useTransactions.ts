@@ -10,9 +10,6 @@ import {
   type Transaction,
   type TransactionFilters,
   type TransactionStatistics,
-  type RefundData,
-  type FailTransactionData,
-  type CancelTransactionData,
 } from '../services/transactionsService'
 
 export function useTransactions() {
@@ -28,7 +25,7 @@ export function useTransactions() {
   const completedTransactions = computed(() => transactions.value.filter((t) => t.status === 'completed'))
   const pendingTransactions = computed(() => transactions.value.filter((t) => t.status === 'pending'))
   const failedTransactions = computed(() => transactions.value.filter((t) => t.status === 'failed'))
-  const refundTransactions = computed(() => transactions.value.filter((t) => t.type === 'refund'))
+  const refundTransactions = computed(() => transactions.value.filter((t) => t.status === 'refunded'))
 
   /**
    * Fetch all transactions with filters
@@ -82,108 +79,114 @@ export function useTransactions() {
     }
   }
 
+  // TODO: These methods are not yet implemented in the service
+  // Uncomment when the backend endpoints are available
+
   /**
    * Process refund (MOST IMPORTANT)
+   * NOTE: Not yet implemented in transactionsService
    */
-  const processRefund = async (id: number, data: RefundData) => {
-    isLoading.value = true
-    error.value = null
-    try {
-      const refundTransaction = await transactionsService.refund(id, data)
-      // Add refund transaction to list
-      transactions.value.unshift(refundTransaction)
-      totalCount.value += 1
-      notify({
-        message: 'Refund processed successfully',
-        color: 'success',
-      })
-      return refundTransaction
-    } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to process refund'
-      notify({
-        message: error.value || 'Failed to process refund',
-        color: 'danger',
-      })
-      throw err
-    } finally {
-      isLoading.value = false
-    }
-  }
+  // const processRefund = async (id: number, data: any) => {
+  //   isLoading.value = true
+  //   error.value = null
+  //   try {
+  //     const refundTransaction = await transactionsService.refund(id, data)
+  //     transactions.value.unshift(refundTransaction)
+  //     totalCount.value += 1
+  //     notify({
+  //       message: 'Refund processed successfully',
+  //       color: 'success',
+  //     })
+  //     return refundTransaction
+  //   } catch (err: any) {
+  //     error.value = err.response?.data?.detail || 'Failed to process refund'
+  //     notify({
+  //       message: error.value || 'Failed to process refund',
+  //       color: 'danger',
+  //     })
+  //     throw err
+  //   } finally {
+  //     isLoading.value = false
+  //   }
+  // }
 
   /**
    * Mark transaction as completed
+   * NOTE: Not yet implemented in transactionsService
    */
-  const completeTransaction = async (id: number) => {
-    try {
-      const updated = await transactionsService.complete(id)
-      const index = transactions.value.findIndex((t) => t.id === id)
-      if (index !== -1) {
-        transactions.value[index] = updated
-      }
-      notify({
-        message: 'Transaction marked as completed',
-        color: 'success',
-      })
-      return updated
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to complete transaction'
-      notify({
-        message: errorMsg,
-        color: 'danger',
-      })
-      throw err
-    }
-  }
+  // const completeTransaction = async (id: number) => {
+  //   try {
+  //     const updated = await transactionsService.complete(id)
+  //     const index = transactions.value.findIndex((t) => t.id === id)
+  //     if (index !== -1) {
+  //       transactions.value[index] = updated
+  //     }
+  //     notify({
+  //       message: 'Transaction marked as completed',
+  //       color: 'success',
+  //     })
+  //     return updated
+  //   } catch (err: any) {
+  //     const errorMsg = err.response?.data?.detail || 'Failed to complete transaction'
+  //     notify({
+  //       message: errorMsg,
+  //       color: 'danger',
+  //     })
+  //     throw err
+  //   }
+  // }
 
   /**
    * Mark transaction as failed
+   * NOTE: Not yet implemented in transactionsService
    */
-  const failTransaction = async (id: number, data: FailTransactionData) => {
-    try {
-      const updated = await transactionsService.fail(id, data)
-      const index = transactions.value.findIndex((t) => t.id === id)
-      if (index !== -1) {
-        transactions.value[index] = updated
-      }
-      notify({
-        message: 'Transaction marked as failed',
-        color: 'warning',
-      })
-      return updated
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to mark transaction as failed'
-      notify({
-        message: errorMsg,
-        color: 'danger',
-      })
-      throw err
-    }
-  }
+  // const failTransaction = async (id: number, data: any) => {
+  //   try {
+  //     const updated = await transactionsService.fail(id, data)
+  //     const index = transactions.value.findIndex((t) => t.id === id)
+  //     if (index !== -1) {
+  //       transactions.value[index] = updated
+  //     }
+  //     notify({
+  //       message: 'Transaction marked as failed',
+  //       color: 'warning',
+  //     })
+  //     return updated
+  //   } catch (err: any) {
+  //     const errorMsg = err.response?.data?.detail || 'Failed to mark transaction as failed'
+  //     notify({
+  //       message: errorMsg,
+  //       color: 'danger',
+  //     })
+  //     throw err
+  //   }
+  // }
 
   /**
    * Cancel transaction
+   * NOTE: Not yet implemented in transactionsService
    */
-  const cancelTransaction = async (id: number, data: CancelTransactionData) => {
-    try {
-      const updated = await transactionsService.cancel(id, data)
-      const index = transactions.value.findIndex((t) => t.id === id)
-      if (index !== -1) {
-        transactions.value[index] = updated
-      }
-      notify({
-        message: 'Transaction cancelled',
-        color: 'success',
-      })
-      return updated
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to cancel transaction'
-      notify({
-        message: errorMsg,
-        color: 'danger',
-      })
-      throw err
-    }
-  }
+  // const cancelTransaction = async (id: number, data: any) => {
+  //   try {
+  //     const updated = await transactionsService.cancel(id, data)
+  //     const index = transactions.value.findIndex((t) => t.id === id)
+  //     if (index !== -1) {
+  //       transactions.value[index] = updated
+  //     }
+  //     notify({
+  //       message: 'Transaction cancelled',
+  //       color: 'success',
+  //     })
+  //     return updated
+  //   } catch (err: any) {
+  //     const errorMsg = err.response?.data?.detail || 'Failed to cancel transaction'
+  //     notify({
+  //       message: errorMsg,
+  //       color: 'danger',
+  //     })
+  //     throw err
+  //   }
+  // }
 
   return {
     // State
@@ -203,9 +206,10 @@ export function useTransactions() {
     fetchTransactions,
     fetchStatistics,
     getTransaction,
-    processRefund,
-    completeTransaction,
-    failTransaction,
-    cancelTransaction,
+    // TODO: Uncomment when backend supports these operations
+    // processRefund,
+    // completeTransaction,
+    // failTransaction,
+    // cancelTransaction,
   }
 }

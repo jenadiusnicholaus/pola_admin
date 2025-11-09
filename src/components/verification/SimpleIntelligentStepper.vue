@@ -521,6 +521,19 @@ const getContactInfo = () => {
   const user = props.verification || currentUser.value
   if (!user) return []
 
+  const formatAddress = (address: any) => {
+    if (!address) return 'Not provided'
+    if ('street' in address) {
+      return `${address.street}, ${address.city}`
+    }
+    return `${address.office_address}, ${address.ward}`
+  }
+
+  const isAddressVerified = (address: any) => {
+    if (!address) return false
+    return 'street' in address ? !!address.street : !!address.office_address
+  }
+
   return [
     {
       type: 'phone',
@@ -537,8 +550,8 @@ const getContactInfo = () => {
     {
       type: 'address',
       label: 'Physical Address',
-      value: user.user_address ? `${user.user_address.street}, ${user.user_address.city}` : 'Not provided',
-      verified: !!user.user_address?.street,
+      value: formatAddress(user.user_address),
+      verified: isAddressVerified(user.user_address),
     },
   ]
 }
