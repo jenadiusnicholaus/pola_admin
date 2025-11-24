@@ -181,6 +181,10 @@ export default {
       },
       children: [
         {
+          name: 'consultant-requests',
+          displayName: 'menu.consultant-requests',
+        },
+        {
           name: 'consultants',
           displayName: 'menu.consultants',
         },

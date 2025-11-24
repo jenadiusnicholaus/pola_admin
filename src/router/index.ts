@@ -121,6 +121,11 @@ const routes: Array<RouteRecordRaw> = [
         component: RouteViewComponent,
         children: [
           {
+            name: 'consultant-requests',
+            path: 'requests',
+            component: () => import('../pages/consultations/ConsultantRequestsPage.vue'),
+          },
+          {
             name: 'consultants',
             path: 'consultants',
             component: () => import('../pages/consultations/ConsultantsPage.vue'),
