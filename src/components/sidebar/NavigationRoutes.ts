@@ -195,6 +195,13 @@ export default {
       ],
     },
     {
+      name: 'questions',
+      displayName: 'menu.questions',
+      meta: {
+        icon: 'help',
+      },
+    },
+    {
       name: 'documents',
       displayName: 'menu.documents',
       meta: {

@@ -138,6 +138,11 @@ const routes: Array<RouteRecordRaw> = [
         ],
       },
       {
+        name: 'questions',
+        path: 'questions',
+        component: () => import('../pages/questions/QuestionsManagementPage.vue'),
+      },
+      {
         name: 'documents',
         path: 'documents',
         component: RouteViewComponent,
