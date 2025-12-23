@@ -78,38 +78,36 @@
           </template>
 
           <template #cell(material_title)="{ rowData }">
-            <span class="font-semibold">{{ rowData.material_title }}</span>
+            <div class="flex flex-col gap-1">
+              <span class="font-semibold">{{ rowData.material_title }}</span>
+              <VaBadge :text="'ID: ' + rowData.material" color="info" size="small" />
+            </div>
           </template>
 
-          <template #cell(sale_amount)="{ rowData }">
-            <span>{{ formatCurrency(rowData.sale_amount) }}</span>
+          <template #cell(gross_amount)="{ rowData }">
+            <span class="font-semibold">{{ formatCurrency(rowData.gross_amount) }}</span>
           </template>
 
-          <template #cell(uploader_share)="{ rowData }">
-            <span class="font-semibold text-success">{{ formatCurrency(rowData.uploader_share) }}</span>
+          <template #cell(net_earnings)="{ rowData }">
+            <span class="font-semibold text-success">{{ formatCurrency(rowData.net_earnings) }}</span>
           </template>
 
           <template #cell(platform_commission)="{ rowData }">
             <span class="text-secondary">{{ formatCurrency(rowData.platform_commission) }}</span>
           </template>
 
-          <template #cell(status)="{ rowData }">
-            <VaBadge :text="rowData.status" :color="getStatusColor(rowData.status)" />
+          <template #cell(paid_out)="{ rowData }">
+            <VaBadge :text="rowData.paid_out ? 'Paid' : 'Pending'" :color="rowData.paid_out ? 'success' : 'warning'" />
           </template>
 
           <template #cell(created_at)="{ rowData }">
             {{ formatDate(rowData.created_at) }}
           </template>
 
-          <template #cell(paid_at)="{ rowData }">
-            <span v-if="rowData.paid_at">{{ formatDate(rowData.paid_at) }}</span>
-            <span v-else class="text-secondary">-</span>
-          </template>
-
           <template #cell(actions)="{ rowData }">
             <div class="action-buttons">
               <VaButton
-                v-if="rowData.status === 'pending'"
+                v-if="!rowData.paid_out"
                 size="small"
                 color="success"
                 :loading="processingId === rowData.id"
@@ -117,15 +115,7 @@
               >
                 Mark as Paid
               </VaButton>
-
-              <VaButton
-                v-if="rowData.disbursement_reference"
-                size="small"
-                color="info"
-                @click="handleViewDisbursement(rowData)"
-              >
-                View Disbursement
-              </VaButton>
+              <VaBadge v-else text="Paid" color="success" />
             </div>
           </template>
         </VaDataTable>
@@ -165,39 +155,37 @@ const filters = ref({
 })
 
 const statusOptions = [
-  { text: 'Pending', value: 'pending' },
-  { text: 'Paid', value: 'paid' },
-  { text: 'Cancelled', value: 'cancelled' },
+  { text: 'Pending', value: 'false' },
+  { text: 'Paid', value: 'true' },
 ]
 
 // Table columns
 const columns = [
   { key: 'uploader', label: 'Uploader', sortable: false },
   { key: 'material_title', label: 'Material', sortable: true },
-  { key: 'sale_amount', label: 'Sale Amount', sortable: true },
-  { key: 'uploader_share', label: 'Uploader Share', sortable: true },
+  { key: 'gross_amount', label: 'Gross Amount', sortable: true },
+  { key: 'net_earnings', label: 'Net Earnings', sortable: true },
   { key: 'platform_commission', label: 'Platform Fee', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
+  { key: 'paid_out', label: 'Status', sortable: true },
   { key: 'created_at', label: 'Created', sortable: true },
-  { key: 'paid_at', label: 'Paid At', sortable: true },
-  { key: 'actions', label: 'Actions', sortable: false },
+  { key: 'actions', label: 'Actions', sortable: false, width: '150px' },
 ]
 
 // Computed statistics
 const totalEarnings = computed(() => {
-  return earnings.value.reduce((sum, earning) => sum + parseFloat(earning.sale_amount), 0)
+  return earnings.value.reduce((sum, earning) => sum + parseFloat(earning.gross_amount), 0)
 })
 
 const paidEarnings = computed(() => {
   return earnings.value
-    .filter((earning) => earning.status === 'paid')
-    .reduce((sum, earning) => sum + parseFloat(earning.uploader_share), 0)
+    .filter((earning) => earning.paid_out)
+    .reduce((sum, earning) => sum + parseFloat(earning.net_earnings), 0)
 })
 
 const unpaidEarnings = computed(() => {
   return earnings.value
-    .filter((earning) => earning.status === 'pending')
-    .reduce((sum, earning) => sum + parseFloat(earning.uploader_share), 0)
+    .filter((earning) => !earning.paid_out)
+    .reduce((sum, earning) => sum + parseFloat(earning.net_earnings), 0)
 })
 
 // Fetch data
@@ -257,13 +245,6 @@ const handleMarkAsPaid = async (earning: UploaderEarning) => {
   }
 }
 
-const handleViewDisbursement = (earning: UploaderEarning) => {
-  notify({
-    message: `Disbursement Reference: ${earning.disbursement_reference}`,
-    color: 'info',
-  })
-}
-
 const handleSearch = () => {
   currentPage.value = 1
   fetchEarnings()
@@ -299,15 +280,6 @@ const formatDate = (dateString: string) => {
 
 const formatDateForAPI = (date: Date) => {
   return date.toISOString().split('T')[0]
-}
-
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    pending: 'warning',
-    paid: 'success',
-    cancelled: 'danger',
-  }
-  return colors[status] || 'secondary'
 }
 
 // Watchers

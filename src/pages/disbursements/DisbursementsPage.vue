@@ -1,6 +1,9 @@
 <template>
   <div>
-    <h1 class="page-title">Disbursement Management</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="page-title m-0">Disbursement Management</h1>
+      <VaButton color="primary" icon="download" @click="showExportModal = true"> Export to Excel </VaButton>
+    </div>
 
     <!-- Statistics Cards -->
     <div class="stats-grid">
@@ -140,14 +143,36 @@
 
           <template #cell(actions)="{ rowData }">
             <div class="action-buttons">
-              <VaButton size="small" icon="visibility" @click="handleViewDetails(rowData)"> View </VaButton>
+              <VaButton size="small" icon="visibility" @click.stop="handleViewDetails(rowData)"> View </VaButton>
+
+              <VaButton
+                size="small"
+                color="secondary"
+                icon="picture_as_pdf"
+                :loading="downloadingId === rowData.id"
+                :disabled="downloadingId === rowData.id"
+                @click.stop="() => downloadReceipt(rowData, 'pdf')"
+              >
+                PDF
+              </VaButton>
+
+              <VaButton
+                size="small"
+                color="secondary"
+                icon="table_chart"
+                :loading="downloadingId === rowData.id"
+                :disabled="downloadingId === rowData.id"
+                @click.stop="() => downloadReceipt(rowData, 'excel')"
+              >
+                Excel
+              </VaButton>
 
               <VaButton
                 v-if="rowData.status === 'pending'"
                 size="small"
                 color="success"
                 :loading="processingId === rowData.id"
-                @click="handleProcess(rowData)"
+                @click.stop="handleProcess(rowData)"
               >
                 Process
               </VaButton>
@@ -158,7 +183,7 @@
                 color="warning"
                 icon="refresh"
                 :loading="resubmittingId === rowData.id"
-                @click="handleResubmit(rowData)"
+                @click.stop="handleResubmit(rowData)"
               >
                 Re-process
               </VaButton>
@@ -168,7 +193,7 @@
                 size="small"
                 color="danger"
                 :loading="cancelingId === rowData.id"
-                @click="handleCancel(rowData)"
+                @click.stop="handleCancel(rowData)"
               >
                 Cancel
               </VaButton>
@@ -178,7 +203,7 @@
                 size="small"
                 color="info"
                 :loading="checkingStatusId === rowData.id"
-                @click="handleCheckStatus(rowData)"
+                @click.stop="handleCheckStatus(rowData)"
               >
                 Check Status
               </VaButton>
@@ -426,38 +451,60 @@
 
         <!-- Action Buttons -->
         <VaDivider />
-        <div class="flex gap-3 justify-end">
-          <VaButton color="secondary" @click="showDetailsModal = false">Close</VaButton>
-          <VaButton
-            v-if="selectedDisbursement.status === 'pending'"
-            color="success"
-            @click="handleProcessFromDetails()"
-          >
-            Process Payment
-          </VaButton>
-          <VaButton
-            v-if="selectedDisbursement.status === 'failed'"
-            color="warning"
-            icon="refresh"
-            :loading="resubmittingId === selectedDisbursement.id"
-            @click="handleResubmitFromDetails()"
-          >
-            Resubmit Payment
-          </VaButton>
-          <VaButton
-            v-if="['pending', 'processing'].includes(selectedDisbursement.status)"
-            color="danger"
-            @click="handleCancelFromDetails()"
-          >
-            Cancel Disbursement
-          </VaButton>
-          <VaButton
-            v-if="selectedDisbursement.status === 'processing'"
-            color="info"
-            @click="handleCheckStatusFromDetails()"
-          >
-            Check Status
-          </VaButton>
+        <div class="flex gap-3 justify-between">
+          <div class="flex gap-2">
+            <VaButton
+              color="secondary"
+              icon="picture_as_pdf"
+              :loading="downloadingId === selectedDisbursement.id"
+              :disabled="downloadingId === selectedDisbursement.id"
+              @click="() => selectedDisbursement && downloadReceipt(selectedDisbursement, 'pdf')"
+            >
+              Download PDF
+            </VaButton>
+            <VaButton
+              color="secondary"
+              icon="table_chart"
+              :loading="downloadingId === selectedDisbursement.id"
+              :disabled="downloadingId === selectedDisbursement.id"
+              @click="() => selectedDisbursement && downloadReceipt(selectedDisbursement, 'excel')"
+            >
+              Download Excel
+            </VaButton>
+          </div>
+          <div class="flex gap-3">
+            <VaButton color="secondary" @click="showDetailsModal = false">Close</VaButton>
+            <VaButton
+              v-if="selectedDisbursement.status === 'pending'"
+              color="success"
+              @click="handleProcessFromDetails()"
+            >
+              Process Payment
+            </VaButton>
+            <VaButton
+              v-if="selectedDisbursement.status === 'failed'"
+              color="warning"
+              icon="refresh"
+              :loading="resubmittingId === selectedDisbursement.id"
+              @click="handleResubmitFromDetails()"
+            >
+              Resubmit Payment
+            </VaButton>
+            <VaButton
+              v-if="['pending', 'processing'].includes(selectedDisbursement.status)"
+              color="danger"
+              @click="handleCancelFromDetails()"
+            >
+              Cancel Disbursement
+            </VaButton>
+            <VaButton
+              v-if="selectedDisbursement.status === 'processing'"
+              color="info"
+              @click="handleCheckStatusFromDetails()"
+            >
+              Check Status
+            </VaButton>
+          </div>
         </div>
       </div>
     </VaModal>
@@ -474,6 +521,70 @@
         class="mt-4"
       />
     </VaModal>
+
+    <!-- Export Modal -->
+    <VaModal v-model="showExportModal" title="Export Disbursements to Excel" size="medium" hide-default-actions>
+      <div class="space-y-4">
+        <p class="text-secondary">Select filters to export disbursements. Leave filters empty to export all.</p>
+
+        <VaSelect
+          v-model="exportFilters.paid_status"
+          label="Payment Status"
+          placeholder="All"
+          :options="[
+            { text: 'All', value: '' },
+            { text: 'Paid (Completed)', value: 'paid' },
+            { text: 'Unpaid (Pending/Processing/Failed)', value: 'unpaid' },
+          ]"
+          text-by="text"
+          value-by="value"
+          clearable
+        />
+
+        <VaSelect
+          v-model="exportFilters.status"
+          label="Disbursement Status"
+          placeholder="All"
+          :options="[
+            { text: 'All', value: '' },
+            { text: 'Pending', value: 'pending' },
+            { text: 'Processing', value: 'processing' },
+            { text: 'Completed', value: 'completed' },
+            { text: 'Failed', value: 'failed' },
+          ]"
+          text-by="text"
+          value-by="value"
+          clearable
+        />
+
+        <VaSelect
+          v-model="exportFilters.disbursement_type"
+          label="Disbursement Type"
+          placeholder="All"
+          :options="[
+            { text: 'All', value: '' },
+            { text: 'Consultant', value: 'consultant' },
+            { text: 'Uploader', value: 'uploader' },
+          ]"
+          text-by="text"
+          value-by="value"
+          clearable
+        />
+
+        <VaInput v-model="exportFilters.from_date" label="From Date" type="date" />
+
+        <VaInput v-model="exportFilters.to_date" label="To Date" type="date" />
+      </div>
+
+      <template #footer>
+        <div class="flex gap-3 justify-end">
+          <VaButton color="secondary" @click="showExportModal = false">Cancel</VaButton>
+          <VaButton color="primary" icon="download" :loading="exportingFilters" @click="handleExportExcel">
+            Export to Excel
+          </VaButton>
+        </div>
+      </template>
+    </VaModal>
   </div>
 </template>
 
@@ -482,6 +593,7 @@ import { ref, onMounted, watch } from 'vue'
 import { disbursementsService } from '../../services/disbursementsService'
 import { useToast } from 'vuestic-ui'
 import type { Disbursement } from '../../services/disbursementsService'
+import { downloadBase64File } from '../../utils/downloadBase64'
 
 const { init: notify } = useToast()
 
@@ -497,12 +609,24 @@ const processingId = ref<number | null>(null)
 const cancelingId = ref<number | null>(null)
 const checkingStatusId = ref<number | null>(null)
 const resubmittingId = ref<number | null>(null)
+const downloadingId = ref<number | null>(null)
+const exportingFilters = ref(false)
 
 const showProcessModal = ref(false)
 const showDetailsModal = ref(false)
 const showCancelModal = ref(false)
+const showExportModal = ref(false)
 const selectedDisbursement = ref<Disbursement | null>(null)
 const cancelReason = ref('')
+
+// Export filters
+const exportFilters = ref({
+  paid_status: '' as '' | 'paid' | 'unpaid',
+  status: '',
+  from_date: '',
+  to_date: '',
+  disbursement_type: '',
+})
 
 // Filters
 const filters = ref({
@@ -692,6 +816,70 @@ const handleResubmit = async (disbursement: Disbursement) => {
     })
   } finally {
     resubmittingId.value = null
+  }
+}
+
+// Document Generation Functions
+const downloadReceipt = async (disbursement: Disbursement, format: 'pdf' | 'excel') => {
+  downloadingId.value = disbursement.id
+  try {
+    const response = await disbursementsService.downloadDisbursementReceipt(disbursement.id, format)
+
+    if (response.success) {
+      downloadBase64File(response.document.base64, response.document.filename, response.document.mimetype)
+      notify({
+        message: `${format.toUpperCase()} receipt downloaded successfully`,
+        color: 'success',
+      })
+    }
+  } catch (error: any) {
+    notify({
+      message: error.message || `Failed to download ${format.toUpperCase()} receipt`,
+      color: 'danger',
+    })
+  } finally {
+    downloadingId.value = null
+  }
+}
+
+const handleExportExcel = async () => {
+  exportingFilters.value = true
+  try {
+    const filters: any = {}
+
+    if (exportFilters.value.paid_status) {
+      filters.paid_status = exportFilters.value.paid_status
+    }
+    if (exportFilters.value.status) {
+      filters.status = exportFilters.value.status
+    }
+    if (exportFilters.value.from_date) {
+      filters.from_date = exportFilters.value.from_date
+    }
+    if (exportFilters.value.to_date) {
+      filters.to_date = exportFilters.value.to_date
+    }
+    if (exportFilters.value.disbursement_type) {
+      filters.disbursement_type = exportFilters.value.disbursement_type
+    }
+
+    const response = await disbursementsService.exportDisbursementsToExcel(filters)
+
+    if (response.success) {
+      downloadBase64File(response.document.base64, response.document.filename, response.document.mimetype)
+      notify({
+        message: `Exported ${response.report_info.total_disbursements} disbursements successfully`,
+        color: 'success',
+      })
+      showExportModal.value = false
+    }
+  } catch (error: any) {
+    notify({
+      message: error.message || 'Failed to export disbursements',
+      color: 'danger',
+    })
+  } finally {
+    exportingFilters.value = false
   }
 }
 

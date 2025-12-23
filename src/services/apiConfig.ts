@@ -216,6 +216,16 @@ export const API_ENDPOINTS = {
       }),
     pending: () => buildUrl(import.meta.env.VITE_DISBURSEMENTS_PENDING || '/admin/disbursements/pending/'),
     statistics: () => buildUrl(import.meta.env.VITE_DISBURSEMENTS_STATISTICS || '/admin/disbursements/statistics/'),
+    downloadPdf: (id: number) =>
+      buildUrl(import.meta.env.VITE_DISBURSEMENTS_DOWNLOAD_PDF || '/admin/disbursements/{id}/download-pdf/', {
+        id: String(id),
+      }),
+    downloadExcel: (id: number) =>
+      buildUrl(import.meta.env.VITE_DISBURSEMENTS_DOWNLOAD_EXCEL || '/admin/disbursements/{id}/download-excel/', {
+        id: String(id),
+      }),
+    exportExcel: () =>
+      buildUrl(import.meta.env.VITE_DISBURSEMENTS_EXPORT_EXCEL || '/admin/disbursements/export_excel/'),
   },
 
   // Earnings Management

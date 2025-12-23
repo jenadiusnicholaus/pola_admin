@@ -9,20 +9,33 @@ import type IRequestParams from '../models/models'
 import { API_ENDPOINTS } from './apiConfig'
 
 // Types
+export interface BookingDetails {
+  id: number
+  booking_type: 'mobile' | 'physical'
+  status: string
+  client_name: string
+  scheduled_date: string
+  scheduled_duration_minutes: number
+  actual_duration_minutes: number
+  total_amount: string
+}
+
 export interface ConsultantEarning {
   id: number
   consultant: number
   consultant_email: string
   consultant_name: string
+  consultant_type: string | null
   booking: number
-  booking_reference: string
-  total_amount: string
-  consultant_share: string
+  booking_details: BookingDetails
+  service_type: 'mobile_consultation' | 'physical_consultation'
+  consultation_type: 'mobile' | 'physical'
+  gross_amount: string
   platform_commission: string
-  status: 'pending' | 'paid' | 'cancelled'
+  net_earnings: string
+  paid_out: boolean
+  payout_date: string | null
   created_at: string
-  paid_at?: string
-  disbursement_reference?: string
 }
 
 export interface UploaderEarning {
@@ -32,13 +45,13 @@ export interface UploaderEarning {
   uploader_name: string
   material: number
   material_title: string
-  sale_amount: string
-  uploader_share: string
+  service_type: 'material_download'
+  gross_amount: string
   platform_commission: string
-  status: 'pending' | 'paid' | 'cancelled'
+  net_earnings: string
+  paid_out: boolean
+  payout_date: string | null
   created_at: string
-  paid_at?: string
-  disbursement_reference?: string
 }
 
 export interface Disbursement {
@@ -220,6 +233,82 @@ export const disbursementsService = {
   }> => {
     const params: IRequestParams = {
       url: API_ENDPOINTS.disbursements.statistics(),
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  // ==================== Document Generation ====================
+
+  /**
+   * Download single disbursement receipt (PDF or Excel)
+   * Endpoint: GET /api/v1/admin/disbursements/{id}/download_receipt/
+   */
+  downloadDisbursementReceipt: async (
+    id: number,
+    format: 'pdf' | 'excel' = 'pdf',
+  ): Promise<{
+    success: boolean
+    document: {
+      base64: string
+      filename: string
+      size_bytes: number
+      mimetype: string
+    }
+    disbursement_id: number
+    external_reference: string
+    format: string
+  }> => {
+    const url =
+      format === 'pdf' ? API_ENDPOINTS.disbursements.downloadPdf(id) : API_ENDPOINTS.disbursements.downloadExcel(id)
+    const params: IRequestParams = {
+      url,
+      method: 'GET',
+    }
+    const response = await makeRequest(params)
+    return response.data
+  },
+
+  /**
+   * Export multiple disbursements to Excel
+   * Endpoint: GET /api/v1/admin/disbursements/export_excel/
+   */
+  exportDisbursementsToExcel: async (filters: {
+    disbursement_id?: number
+    status?: string
+    paid_status?: 'paid' | 'unpaid'
+    recipient_id?: number
+    from_date?: string
+    to_date?: string
+    disbursement_type?: string
+  }): Promise<{
+    success: boolean
+    document: {
+      base64: string
+      filename: string
+      size_bytes: number
+      mimetype: string
+    }
+    report_info: {
+      title: string
+      total_disbursements: number
+      total_amount: string
+      filters_applied: Record<string, any>
+    }
+  }> => {
+    const queryParams = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value))
+      }
+    })
+
+    const baseUrl = API_ENDPOINTS.disbursements.exportExcel()
+    const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl
+
+    const params: IRequestParams = {
+      url,
       method: 'GET',
     }
     const response = await makeRequest(params)
