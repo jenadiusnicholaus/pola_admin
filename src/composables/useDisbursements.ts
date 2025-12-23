@@ -28,10 +28,10 @@ export function useDisbursements() {
   const error = ref<string | null>(null)
 
   // Computed properties
-  const pendingConsultantEarnings = computed(() => consultantEarnings.value.filter((e) => e.status === 'pending'))
-  const pendingUploaderEarnings = computed(() => uploaderEarnings.value.filter((e) => e.status === 'pending'))
-  const paidConsultantEarnings = computed(() => consultantEarnings.value.filter((e) => e.status === 'paid'))
-  const paidUploaderEarnings = computed(() => uploaderEarnings.value.filter((e) => e.status === 'paid'))
+  const pendingConsultantEarnings = computed(() => consultantEarnings.value.filter((e) => !e.paid_out))
+  const pendingUploaderEarnings = computed(() => uploaderEarnings.value.filter((e) => !e.paid_out))
+  const paidConsultantEarnings = computed(() => consultantEarnings.value.filter((e) => e.paid_out))
+  const paidUploaderEarnings = computed(() => uploaderEarnings.value.filter((e) => e.paid_out))
 
   // ==================== Consultant Earnings ====================
 
