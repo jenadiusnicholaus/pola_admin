@@ -1,0 +1,35 @@
+# Development-only Docker Compose configuration
+# Use: docker-compose -f docker-compose.dev.yml up
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: pola-admin-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      # Prevent node_modules from being overwritten by mount
+      - /app/node_modules
+      # Persist Vite cache
+      - vite-cache:/app/node_modules/.vite
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000/api}
+      - CHOKIDAR_USEPOLLING=true
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+volumes:
+  vite-cache:
+    name: pola-admin-vite-cache
+
+networks:
+  default:
+    name: pola-admin-dev-network
+    driver: bridge

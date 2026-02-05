@@ -1,0 +1,82 @@
+services:
+  # ============================================
+  # Development Service
+  # ============================================
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: pola-admin-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      # Prevent node_modules from being overwritten
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000/api}
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    profiles:
+      - dev
+
+  # ============================================
+  # Production Service
+  # ============================================
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - NODE_ENV=production
+    container_name: pola-admin-prod
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - prod
+
+  # ============================================
+  # Production with SSL (optional)
+  # ============================================
+  app-prod-ssl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: pola-admin-prod-ssl
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ssl/certs:/etc/nginx/ssl:ro
+      - ./nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      - NODE_ENV=production
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - prod-ssl
+
+networks:
+  default:
+    name: pola-admin-network
+    driver: bridge
