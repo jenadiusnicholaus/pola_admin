@@ -14,7 +14,7 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 
 # Copy package.json only (we'll use npm)
-COPY package.json ./
+COPY package.json .
 
 # ============================================
 # Stage 2: Development
@@ -61,8 +61,9 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy SPA fallback configuration
-COPY --from=builder /app/_redirects /usr/share/nginx/html/_redirects 2>/dev/null || true
+# Copy SPA fallback configuration (optional - for Netlify compatibility)
+# Note: _redirects is handled by nginx.conf, so this is optional
+RUN touch /usr/share/nginx/html/_redirects
 
 # Add non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
