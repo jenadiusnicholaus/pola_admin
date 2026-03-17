@@ -55,8 +55,8 @@
         <VaCardContent>
           <div class="material-header">
             <div class="material-type">
-              <VaIcon :name="getMaterialIcon(material.category)" size="2rem" />
-              <VaBadge :text="material.category_display || material.category" />
+              <VaIcon :name="getMaterialIcon(material.content_type)" size="2rem" />
+              <VaBadge :text="material.content_type" />
             </div>
             <div class="material-badges">
               <VaBadge v-if="material.is_approved === true" text="Approved" color="success" />
@@ -173,8 +173,8 @@
           <span>{{ selectedMaterial.description || 'N/A' }}</span>
         </div>
         <div class="detail-row">
-          <strong>Category:</strong>
-          <span>{{ selectedMaterial.category_display || selectedMaterial.category }}</span>
+          <strong>Content Type:</strong>
+          <span>{{ selectedMaterial.content_type }}</span>
         </div>
         <div class="detail-row">
           <strong>Uploader:</strong>
@@ -218,7 +218,11 @@
               <img :src="getFileUrl(selectedMaterial.file)" :alt="selectedMaterial.title" />
             </div>
             <div v-else-if="isPdfFile(selectedMaterial.file)" class="preview-pdf-detail">
-              <VuePDF v-if="detailPdf" :pdf="detailPdf" />
+              <template v-if="detailPdf">
+                <div v-for="page in detailPages" :key="page" class="pdf-page">
+                  <VuePDF :pdf="detailPdf" :page="page" />
+                </div>
+              </template>
               <div v-else class="pdf-loading">
                 <VaProgressCircle indeterminate size="small" />
                 <p>Loading PDF...</p>
@@ -273,13 +277,6 @@
       <div v-if="editForm" class="modal-form">
         <VaInput v-model="editForm.title" label="Title" required />
         <VaTextarea v-model="editForm.description" label="Description" :min-rows="3" />
-        <VaSelect
-          v-model="editForm.category"
-          label="Category"
-          :options="categoryOptions"
-          value-by="value"
-          text-by="text"
-        />
         <VaInput v-model="editForm.price" label="Price (TSh)" type="number" step="0.01" />
         <VaCheckbox v-model="editForm.is_active" label="Active" />
       </div>
@@ -295,14 +292,6 @@
       <div v-if="createForm" class="modal-form">
         <VaInput v-model="createForm.title" label="Title" required />
         <VaTextarea v-model="createForm.description" label="Description" :min-rows="3" required />
-        <VaSelect
-          v-model="createForm.category"
-          label="Category"
-          :options="createCategoryOptions"
-          value-by="value"
-          text-by="text"
-          required
-        />
         <VaInput
           v-model="createForm.price"
           label="Price (TSh)"
@@ -319,7 +308,7 @@
           required
         />
         <VaFileUpload
-          v-if="createForm.content_type === 'file'"
+          v-if="isFileBasedType(createForm.content_type)"
           v-model="createForm.file"
           type="single"
           file-types=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp4,.mp3,.jpg,.jpeg,.png"
@@ -328,9 +317,10 @@
           Upload File (Required for file content)
         </VaFileUpload>
         <VaTextarea
-          v-if="createForm.content_type === 'rich_text'"
+          v-if="isTextBasedType(createForm.content_type)"
           v-model="createForm.rich_text_content"
-          label="Rich Text Content"
+          label="Content Content"
+          placeholder="Enter text content here..."
           :min-rows="5"
           required
         />
@@ -363,7 +353,11 @@
           <img :src="getFileUrl(previewFile.file)" :alt="previewFile.title" />
         </div>
         <div v-else-if="isPdfFile(previewFile.file)" class="preview-full-pdf">
-          <VuePDF v-if="previewPdf" :pdf="previewPdf" />
+          <template v-if="previewPdf">
+            <div v-for="page in previewPages" :key="page" class="pdf-page">
+              <VuePDF :pdf="previewPdf" :page="page" />
+            </div>
+          </template>
           <div v-else class="pdf-loading">
             <VaProgressCircle indeterminate />
             <p>Loading PDF...</p>
@@ -432,10 +426,10 @@ const detailPdfSrc = ref<string>('')
 const previewPdfSrc = ref<string>('')
 
 // Load PDF for detail modal
-const { pdf: detailPdf } = usePDF(detailPdfSrc)
+const { pdf: detailPdf, pages: detailPages } = usePDF(detailPdfSrc)
 
 // Load PDF for preview modal
-const { pdf: previewPdf } = usePDF(previewPdfSrc)
+const { pdf: previewPdf, pages: previewPages } = usePDF(previewPdfSrc)
 
 // Watch for changes in selected material to load PDF
 watch(
@@ -479,28 +473,47 @@ const statusOptions = [
   { text: 'Inactive', value: false },
 ]
 
-const categoryOptions = [
-  { text: 'PDF', value: 'pdf' },
-  { text: 'Video', value: 'video' },
-  { text: 'Audio', value: 'audio' },
-  { text: 'Notes', value: 'notes' },
-  { text: 'Past Papers', value: 'past_papers' },
-  { text: 'Hub Content', value: 'hub_content' },
-]
+const contentTypeOptions = [
+  // Post types (usually free, text-based)
+  { text: 'Discussion Post', value: 'discussion' },
+  { text: 'Question Post', value: 'question' },
+  { text: 'Article', value: 'article' },
+  { text: 'News', value: 'news' },
+  { text: 'Announcement', value: 'announcement' },
 
-const createCategoryOptions = [
-  { text: 'Notes', value: 'notes' },
-  { text: 'Past Papers', value: 'past_papers' },
+  // Document types (can be paid, file-based)
+  { text: 'General Document', value: 'document' },
+  { text: 'Study Notes', value: 'notes' },
+  { text: 'Past Exam Papers', value: 'past_papers' },
   { text: 'Assignments', value: 'assignments' },
-  { text: 'Tutorials', value: 'tutorials' },
+  { text: 'Research Paper', value: 'research' },
+  { text: 'Case Study', value: 'case_study' },
+  { text: 'Tutorial', value: 'tutorial' },
   { text: 'Hub Content', value: 'hub_content' },
   { text: 'Other', value: 'other' },
 ]
 
-const contentTypeOptions = [
-  { text: 'File Upload', value: 'file' },
-  { text: 'Rich Text', value: 'rich_text' },
-]
+// Helper to check if content type is file-based
+const isFileBasedType = (type: string) => {
+  const fileBasedTypes = [
+    'document',
+    'notes',
+    'past_papers',
+    'assignments',
+    'research',
+    'case_study',
+    'tutorial',
+    'hub_content',
+    'other',
+  ]
+  return fileBasedTypes.includes(type)
+}
+
+// Helper to check if content type is text-based
+const isTextBasedType = (type: string) => {
+  const textBasedTypes = ['discussion', 'question', 'article', 'news', 'announcement']
+  return textBasedTypes.includes(type)
+}
 
 const languageOptions = [
   { text: 'English', value: 'en' },
@@ -569,7 +582,6 @@ const editMaterial = (material: any) => {
     id: material.id,
     title: material.title,
     description: material.description || '',
-    category: material.category,
     price: material.price,
     is_active: material.is_active,
   }
@@ -583,7 +595,6 @@ const saveMaterial = async () => {
     await hubsStore.updateMaterial(editForm.value.id, {
       title: editForm.value.title,
       description: editForm.value.description,
-      category: editForm.value.category,
       price: editForm.value.price,
       is_active: editForm.value.is_active,
     })
@@ -603,10 +614,9 @@ const openCreateModal = () => {
     title: '',
     description: '',
     subtopic: subtopicId.value,
-    category: 'hub_content',
     price: '0',
     uploader_type: 'admin',
-    content_type: 'file',
+    content_type: 'document',
     file: undefined,
     rich_text_content: '',
     language: 'en',
@@ -626,13 +636,13 @@ const saveNewMaterial = async () => {
     return
   }
 
-  if (createForm.value.content_type === 'file' && !createForm.value.file) {
+  if (isFileBasedType(createForm.value.content_type) && !createForm.value.file) {
     notify({ message: 'Please upload a file', color: 'warning' })
     return
   }
 
-  if (createForm.value.content_type === 'rich_text' && !createForm.value.rich_text_content) {
-    notify({ message: 'Please provide rich text content', color: 'warning' })
+  if (isTextBasedType(createForm.value.content_type) && !createForm.value.rich_text_content) {
+    notify({ message: 'Please provide text content', color: 'warning' })
     return
   }
 
@@ -644,7 +654,6 @@ const saveNewMaterial = async () => {
       title: createForm.value.title,
       description: createForm.value.description,
       subtopic: createForm.value.subtopic,
-      category: createForm.value.category,
       price: createForm.value.price,
       uploader_type: createForm.value.uploader_type,
       content_type: createForm.value.content_type,
@@ -655,7 +664,7 @@ const saveNewMaterial = async () => {
     }
 
     // Add file or rich text content based on content type
-    if (createForm.value.content_type === 'file' && createForm.value.file) {
+    if (isFileBasedType(createForm.value.content_type) && createForm.value.file) {
       // VaFileUpload returns a single File object, not an array
       const file = Array.isArray(createForm.value.file) ? createForm.value.file[0] : createForm.value.file
 
@@ -665,7 +674,7 @@ const saveNewMaterial = async () => {
         materialData.file = base64
         console.log('File converted successfully. Base64 length:', base64.length)
       }
-    } else if (createForm.value.content_type === 'rich_text') {
+    } else if (isTextBasedType(createForm.value.content_type)) {
       materialData.rich_text_content = createForm.value.rich_text_content
     }
 
@@ -743,11 +752,19 @@ const deleteMaterial = async (material: any) => {
 const getMaterialIcon = (type: string) => {
   if (!type) return 'description'
   const icons: Record<string, string> = {
-    pdf: 'picture_as_pdf',
-    video: 'video_library',
-    audio: 'audio_file',
-    image: 'image',
     document: 'description',
+    notes: 'description',
+    past_papers: 'history_edu',
+    assignments: 'assignment',
+    research: 'science',
+    case_study: 'work',
+    tutorial: 'school',
+    hub_content: 'hub',
+    discussion: 'forum',
+    question: 'help',
+    article: 'article',
+    news: 'newspaper',
+    announcement: 'campaign',
   }
   return icons[type.toLowerCase()] || 'description'
 }
@@ -1063,8 +1080,15 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-.preview-full-pdf iframe {
-  border-radius: 4px;
+.preview-full-pdf {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  gap: 1rem;
 }
 
 .preview-full-file {
@@ -1117,14 +1141,23 @@ onMounted(() => {
 }
 
 .preview-pdf-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  background: var(--va-background-element);
   min-height: 400px;
-  position: relative;
 }
 
-.preview-pdf-detail canvas {
-  width: 100% !important;
-  height: auto !important;
+.pdf-page {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
   max-width: 100%;
+}
+
+.pdf-page canvas {
+  max-width: 100% !important;
+  height: auto !important;
 }
 
 .preview-other-file {

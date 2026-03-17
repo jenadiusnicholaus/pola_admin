@@ -64,8 +64,6 @@ export interface Material {
   }
   uploader_type: string
   uploader_type_display: string
-  category: string
-  category_display: string
   file: string | null
   file_size: number
   file_size_mb: number
@@ -73,6 +71,7 @@ export interface Material {
   downloads_count: number
   total_revenue: string
   uploader_earnings: string
+  content_type: string
   is_active: boolean
   is_approved: boolean | null
   created_at: string

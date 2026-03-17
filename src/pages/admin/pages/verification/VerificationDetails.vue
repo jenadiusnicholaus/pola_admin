@@ -740,8 +740,7 @@ onMounted(async () => {
 }
 
 .header-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   padding: 0 2rem;
 }
 
@@ -797,15 +796,14 @@ onMounted(async () => {
 }
 
 .error-alert {
-  max-width: 1200px;
-  margin: 0 auto 2rem auto;
+  width: 100%;
+  margin-bottom: 2rem;
   padding: 0 2rem;
 }
 
 /* Loading States */
 .loading-state {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   padding: 0 2rem;
 }
 
@@ -869,8 +867,7 @@ onMounted(async () => {
 
 /* Main Content */
 .main-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   padding: 0 2rem 2rem 2rem;
   display: flex;
   flex-direction: column;

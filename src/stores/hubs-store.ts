@@ -467,7 +467,6 @@ export const useHubsStore = defineStore('hubs', {
       title: string
       description: string
       subtopic: number
-      category: string
       price: string | number
       uploader_type: string
       file?: string // base64 encoded file
@@ -484,7 +483,6 @@ export const useHubsStore = defineStore('hubs', {
           title: data.title,
           description: data.description,
           subtopic: data.subtopic,
-          category: data.category,
           price: typeof data.price === 'string' ? parseFloat(data.price) : data.price,
           uploader_type: data.uploader_type,
         }
