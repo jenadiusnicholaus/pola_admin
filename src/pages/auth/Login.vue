@@ -66,17 +66,17 @@
         </VaButton>
 
         <!-- Divider -->
-        <div class="divider">
+        <!-- <div class="divider">
           <span class="divider-text">New to the platform?</span>
-        </div>
+        </div> -->
 
         <!-- Sign Up Link -->
-        <RouterLink :to="{ name: 'signup' }" class="signup-link">
+        <!-- <RouterLink :to="{ name: 'signup' }" class="signup-link">
           <VaButton preset="secondary" class="w-full" size="large">
             <VaIcon name="person_add" class="mr-2" />
             Create Account
           </VaButton>
-        </RouterLink>
+        </RouterLink> -->
       </div>
     </VaForm>
   </div>

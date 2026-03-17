@@ -99,7 +99,8 @@ onMounted(() => {
 <template>
   <div class="dashboard-container">
     <!-- Header -->
-    <div class="dashboard-header">
+    <div class="header-content-wrapper">
+      <img src="/for_white_bg_logo.png" alt="Pola Logo" class="dashboard-logo" />
       <div>
         <h1 class="dashboard-title">Admin Dashboard</h1>
         <p class="dashboard-subtitle">Quick access to key administrative functions</p>
@@ -157,7 +158,18 @@ onMounted(() => {
 .dashboard-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+}
+
+.header-content-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.dashboard-logo {
+  height: 140px;
+  width: auto;
 }
 
 .dashboard-title {

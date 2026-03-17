@@ -4,36 +4,11 @@
       <div class="auth-sidebar">
         <div class="sidebar-content">
           <RouterLink class="logo-link" to="/" aria-label="Visit homepage">
-            <VuesticLogo :height="32" start="#FFF" />
+            <img src="/auth_logo.png" alt="Pola Logo" style="height: 160px; width: auto" />
           </RouterLink>
 
           <div class="sidebar-info">
-            <h2 class="sidebar-title">Admin Dashboard</h2>
-            <p class="sidebar-subtitle">Powerful tools for managing your platform with ease and efficiency.</p>
-
-            <div class="features">
-              <div class="feature-item">
-                <VaIcon name="verified" size="1.5rem" />
-                <div>
-                  <h3>Secure Authentication</h3>
-                  <p>Enterprise-grade security for your data</p>
-                </div>
-              </div>
-              <div class="feature-item">
-                <VaIcon name="analytics" size="1.5rem" />
-                <div>
-                  <h3>Real-time Analytics</h3>
-                  <p>Monitor and analyze your metrics</p>
-                </div>
-              </div>
-              <div class="feature-item">
-                <VaIcon name="support_agent" size="1.5rem" />
-                <div>
-                  <h3>24/7 Support</h3>
-                  <p>We're here to help you succeed</p>
-                </div>
-              </div>
-            </div>
+            <img src="/pola_auth_image.png" alt="Pola Dashboard Features" class="auth-feature-image" />
           </div>
 
           <div class="sidebar-footer">
@@ -55,7 +30,7 @@
         <main class="mobile-main">
           <div class="mobile-header">
             <RouterLink class="mobile-logo" to="/" aria-label="Visit homepage">
-              <VuesticLogo class="mb-4" start="#f59e0b" :height="28" />
+              <img src="/auth_logo.png" alt="Pola Logo" style="height: 100px; width: auto" />
             </RouterLink>
           </div>
           <RouterView :key="route.fullPath" />
@@ -68,7 +43,6 @@
 <script lang="ts" setup>
 import { useRoute } from 'vue-router'
 import { useBreakpoint } from 'vuestic-ui'
-import VuesticLogo from '../components/VuesticLogo.vue'
 
 const route = useRoute()
 const breakpoint = useBreakpoint()
@@ -80,11 +54,11 @@ const breakpoint = useBreakpoint()
 }
 
 .auth-sidebar {
-  width: 35vw;
-  min-width: 400px;
+  width: 40vw;
+  min-width: 450px;
   height: 100%;
   background: linear-gradient(135deg, #1f2937 0%, #111827 50%, #0f172a 100%);
-  padding: 3rem;
+  padding: 2rem 0; /* Vertical padding only for logo/footer */
   display: flex;
   flex-direction: column;
   color: white;
@@ -119,6 +93,8 @@ const breakpoint = useBreakpoint()
   z-index: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   height: 100%;
 }
 
@@ -129,45 +105,19 @@ const breakpoint = useBreakpoint()
 
 .sidebar-info {
   flex: 1;
-}
-
-.sidebar-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 1rem 0;
-  line-height: 1.2;
-}
-
-.sidebar-subtitle {
-  font-size: 1.125rem;
-  opacity: 0.9;
-  line-height: 1.6;
-  margin: 0 0 3rem 0;
-}
-
-.features {
   display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
 }
 
-.feature-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.feature-item h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem 0;
-}
-
-.feature-item p {
-  font-size: 0.9375rem;
-  opacity: 0.8;
-  margin: 0;
-  line-height: 1.5;
+.auth-feature-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .sidebar-footer {
@@ -176,6 +126,9 @@ const breakpoint = useBreakpoint()
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   opacity: 0.7;
   font-size: 0.875rem;
+
+  width: 100%;
+  text-align: center;
 }
 
 .sidebar-footer p {

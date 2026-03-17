@@ -13,8 +13,7 @@
         </Transition>
         <RouterLink to="/" aria-label="Visit home page" class="logo-link">
           <div class="app-logo">
-            <VaIcon name="verified_user" size="2rem" color="primary" />
-            <span class="app-name">Pola Admin</span>
+            <img src="/auth_logo.png" alt="Pola Admin" style="height: 48px; width: auto" />
           </div>
         </RouterLink>
       </div>
