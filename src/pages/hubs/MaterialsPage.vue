@@ -2,34 +2,61 @@
   <div class="materials-page">
     <!-- Header with Back Button -->
     <div class="page-header">
-      <VaButton icon="arrow_back" preset="plain" @click="goBack">Back to Subtopics</VaButton>
-      <div v-if="selectedSubtopic">
-        <h1 class="page-title">{{ selectedSubtopic.name }}</h1>
-        <p class="page-subtitle">{{ selectedSubtopic.name_sw }}</p>
+      <VaButton icon="arrow_back" preset="plain" @click="goBack">Back to Topics</VaButton>
+      <div v-if="selectedTopic">
+        <h1 class="page-title">{{ languageFilter === 'sw' ? selectedTopic.name_sw : selectedTopic.name }}</h1>
+        <p class="page-subtitle">{{ languageFilter === 'sw' ? selectedTopic.name : selectedTopic.name_sw }}</p>
       </div>
       <div v-else>
-        <h1 class="page-title">Materials</h1>
+        <h1 class="page-title">Topic Materials</h1>
       </div>
     </div>
 
     <!-- Toolbar -->
     <VaCard class="my-6">
       <VaCardContent>
-        <div class="toolbar">
-          <div class="search-filters">
-            <VaInput v-model="searchQuery" placeholder="Search materials..." clearable>
+        <div class="toolbar-container">
+          <div class="toolbar-filters">
+            <VaInput v-model="searchQuery" placeholder="Search materials..." clearable class="filter-search">
               <template #prependInner>
                 <VaIcon name="search" />
               </template>
             </VaInput>
 
-            <VaSelect v-model="typeFilter" placeholder="Type" :options="typeOptions" clearable />
+            <VaSelect
+              v-model="typeFilter"
+              placeholder="Type"
+              :options="typeOptions"
+              value-by="value"
+              text-by="text"
+              clearable
+              class="filter-select"
+            />
 
-            <VaSelect v-model="statusFilter" placeholder="Status" :options="statusOptions" clearable />
+            <VaSelect
+              v-model="statusFilter"
+              placeholder="Status"
+              :options="statusOptions"
+              value-by="value"
+              text-by="text"
+              clearable
+              class="filter-select"
+            />
 
-            <VaButton icon="refresh" @click="loadData" />
+            <VaSelect
+              v-model="languageFilter"
+              placeholder="Language"
+              :options="languageOptions"
+              value-by="value"
+              text-by="text"
+              clearable
+              class="filter-select"
+            />
+
+            <VaButton icon="refresh" preset="secondary" @click="loadData" />
           </div>
-          <VaButton icon="add" @click="openCreateModal">Add Material</VaButton>
+
+          <VaButton icon="add" color="warning" @click="openCreateModal">Add</VaButton>
         </div>
       </VaCardContent>
     </VaCard>
@@ -94,11 +121,7 @@
             <div class="info-item">
               <VaIcon name="person" size="small" />
               <span>
-                {{
-                  material.uploader?.first_name && material.uploader?.last_name
-                    ? `${material.uploader.first_name} ${material.uploader.last_name}`
-                    : material.uploader?.email || 'Unknown'
-                }}
+                {{ material.uploader_name || material.uploader_email || 'Unknown' }}
               </span>
             </div>
             <div class="info-item">
@@ -115,7 +138,7 @@
             </div>
             <div v-if="material.file" class="info-item">
               <VaIcon name="attachment" size="small" />
-              <span>{{ material.file_size_mb }} MB</span>
+              <span>{{ material.file_size ? (material.file_size / (1024 * 1024)).toFixed(2) : '0' }} MB</span>
             </div>
           </div>
 
@@ -179,12 +202,8 @@
         <div class="detail-row">
           <strong>Uploader:</strong>
           <span>
-            {{
-              selectedMaterial.uploader?.first_name && selectedMaterial.uploader?.last_name
-                ? `${selectedMaterial.uploader.first_name} ${selectedMaterial.uploader.last_name}`
-                : selectedMaterial.uploader?.email || 'Unknown'
-            }}
-            ({{ selectedMaterial.uploader_type_display }})
+            {{ selectedMaterial.uploader_name || selectedMaterial.uploader_email || 'Unknown' }}
+            ({{ selectedMaterial.uploader_type_display || selectedMaterial.uploader_type }})
           </span>
         </div>
         <div class="detail-row">
@@ -202,7 +221,7 @@
         <div class="detail-row">
           <strong>File:</strong>
           <span v-if="selectedMaterial.file">
-            {{ selectedMaterial.file_size_mb }} MB
+            {{ selectedMaterial.file_size ? (selectedMaterial.file_size / (1024 * 1024)).toFixed(2) : '0' }} MB
             <VaButton size="small" icon="download" @click="downloadFile(selectedMaterial)">Download</VaButton>
           </span>
           <span v-else>No file attached</span>
@@ -398,17 +417,18 @@ const { init: notify } = useToast()
 const hubsStore = useHubsStore()
 
 // Check if required params exist, if not redirect
-if (!route.params.topicId || !route.params.subtopicId) {
+if (!route.params.topicId) {
   router.replace({ name: 'legal-education' })
 }
 
 const topicId = ref<number>(Number(route.params.topicId) || 0)
-const subtopicId = ref<number>(Number(route.params.subtopicId) || 0)
+// Pre-populate language filter from query param (set by language panel click)
+const initialLanguage = route.query.language as string | undefined
 
 // Computed from store
-const loading = computed(() => hubsStore.loadingMaterials)
-const materials = computed(() => hubsStore.subtopicMaterials)
-const selectedSubtopic = computed(() => hubsStore.selectedSubtopic)
+const loading = computed(() => hubsStore.loadingHubContent)
+const materials = computed(() => hubsStore.hubContent)
+const selectedTopic = computed(() => hubsStore.selectedTopic)
 
 // Modal state
 const showViewModal = ref(false)
@@ -459,6 +479,20 @@ watch(
 const searchQuery = ref('')
 const typeFilter = ref<string | null>(null)
 const statusFilter = ref<boolean | null>(null)
+const languageFilter = ref<string | null>(initialLanguage || null)
+
+let searchTimeout: ReturnType<typeof setTimeout>
+
+watch([typeFilter, statusFilter, languageFilter], () => {
+  loadData()
+})
+
+watch(searchQuery, () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    loadData()
+  }, 500)
+})
 
 const typeOptions = [
   { text: 'PDF', value: 'pdf' },
@@ -523,18 +557,28 @@ const languageOptions = [
 // Load data
 const loadData = async () => {
   try {
-    // Load subtopics first to get subtopic details
-    if (!hubsStore.selectedSubtopic || hubsStore.selectedSubtopic.id !== subtopicId.value) {
-      await hubsStore.fetchSubtopics({ topic_id: topicId.value })
+    // Load topic details
+    if (!hubsStore.selectedTopic || hubsStore.selectedTopic.id !== topicId.value) {
+      await hubsStore.fetchTopicById(topicId.value)
     }
-    // Then load materials
-    await hubsStore.fetchSubtopicMaterials(subtopicId.value)
-    // Debug: Check if materials have file property
-    console.log('Loaded materials:', hubsStore.subtopicMaterials)
-    console.log(
-      'Materials with files:',
-      hubsStore.subtopicMaterials.filter((m: any) => m.file),
-    )
+
+    const topicSlug = hubsStore.selectedTopic?.slug
+
+    const filters: any = {
+      ordering: '-created_at',
+      page: 1,
+      page_size: 20,
+    }
+    if (topicSlug) filters.topic_slug = topicSlug
+    if (searchQuery.value) filters.search = searchQuery.value
+    if (typeFilter.value) filters.content_type = typeFilter.value
+    if (statusFilter.value !== null && statusFilter.value !== undefined) filters.is_active = statusFilter.value
+    if (languageFilter.value) filters.language = languageFilter.value
+
+    // Load materials with correct API filters
+    await hubsStore.fetchHubContent(filters)
+    console.log('API filters used:', filters)
+    console.log('Loaded materials:', hubsStore.hubContent)
   } catch (error: any) {
     notify({
       message: error.message || 'Failed to load materials',
@@ -545,7 +589,7 @@ const loadData = async () => {
 
 // Navigation
 const goBack = () => {
-  router.push({ name: 'subtopics', params: { topicId: topicId.value } })
+  router.push({ name: 'legal-education' })
 }
 
 // Helper to get full file URL
@@ -592,13 +636,14 @@ const saveMaterial = async () => {
   if (!editForm.value) return
 
   try {
-    await hubsStore.updateMaterial(editForm.value.id, {
+    await hubsStore.updateHubContent(editForm.value.id, {
       title: editForm.value.title,
       description: editForm.value.description,
       price: editForm.value.price,
       is_active: editForm.value.is_active,
     })
 
+    await loadData()
     notify({ message: 'Material updated successfully', color: 'success' })
     showEditModal.value = false
   } catch (error: any) {
@@ -613,13 +658,13 @@ const openCreateModal = () => {
   createForm.value = {
     title: '',
     description: '',
-    subtopic: subtopicId.value,
+    topic: topicId.value,
     price: '0',
     uploader_type: 'admin',
     content_type: 'document',
     file: undefined,
     rich_text_content: '',
-    language: 'en',
+    language: languageFilter.value || 'en',
     is_downloadable: true,
     is_approved: true,
     is_active: true,
@@ -653,7 +698,9 @@ const saveNewMaterial = async () => {
     const materialData: any = {
       title: createForm.value.title,
       description: createForm.value.description,
-      subtopic: createForm.value.subtopic,
+      topic: createForm.value.topic,
+      topic_id: createForm.value.topic,
+      hub_type: 'legal_ed',
       price: createForm.value.price,
       uploader_type: createForm.value.uploader_type,
       content_type: createForm.value.content_type,
@@ -680,7 +727,9 @@ const saveNewMaterial = async () => {
 
     console.log('Final materialData being sent to store:', materialData)
 
-    await hubsStore.createMaterial(materialData)
+    await hubsStore.createHubContent(materialData)
+    // Reload data since we are bypassing the subtopic local reactive update
+    await loadData()
 
     notify({ message: 'Material created successfully', color: 'success' })
     showCreateModal.value = false
@@ -696,7 +745,8 @@ const saveNewMaterial = async () => {
 
 const approveMaterial = async (material: any) => {
   try {
-    await hubsStore.approveMaterial(material.id)
+    await hubsStore.updateHubContent(material.id, { is_approved: true })
+    await loadData()
     notify({ message: 'Material approved successfully', color: 'success' })
   } catch (error: any) {
     notify({
@@ -707,9 +757,9 @@ const approveMaterial = async (material: any) => {
 }
 
 const rejectMaterial = async (material: any) => {
-  const reason = prompt('Rejection reason (optional):')
   try {
-    await hubsStore.rejectMaterial(material.id, reason || undefined)
+    await hubsStore.updateHubContent(material.id, { is_approved: false })
+    await loadData()
     notify({ message: 'Material rejected', color: 'success' })
   } catch (error: any) {
     notify({
@@ -721,7 +771,8 @@ const rejectMaterial = async (material: any) => {
 
 const toggleMaterial = async (material: any) => {
   try {
-    await hubsStore.toggleMaterial(material.id)
+    await hubsStore.toggleContentActive(material.id)
+    await loadData()
     notify({
       message: `Material ${material.is_active ? 'deactivated' : 'activated'}`,
       color: 'success',
@@ -738,7 +789,8 @@ const deleteMaterial = async (material: any) => {
   if (!confirm(`Delete "${material.title}"?`)) return
 
   try {
-    await hubsStore.deleteMaterial(material.id)
+    await hubsStore.deleteContent(material.id)
+    await loadData()
     notify({ message: 'Material deleted successfully', color: 'success' })
   } catch (error: any) {
     notify({
@@ -848,7 +900,7 @@ onMounted(() => {
 
 <style scoped>
 .materials-page {
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
 .page-header {
@@ -867,36 +919,43 @@ onMounted(() => {
 }
 
 /* Toolbar */
-.toolbar {
+.toolbar-container {
   display: flex;
-  gap: 1rem;
-  align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
 }
 
-.search-filters {
-  display: flex;
+.toolbar-filters {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   gap: 1rem;
   flex: 1;
   align-items: center;
 }
 
-.search-filters .va-input {
-  min-width: 250px;
-  flex: 1;
-  max-width: 400px;
+.filter-search {
+  flex: 2;
+  min-width: 150px;
 }
 
-.search-filters .va-select {
-  min-width: 150px;
+.filter-select {
+  flex: 1;
+  min-width: 100px;
+}
+
+.toolbar-container :deep(.va-button) {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Materials List */
 .materials-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .material-card {
@@ -960,7 +1019,6 @@ onMounted(() => {
   margin-top: 1rem;
 }
 
-/* Loading & Empty States */
 .loading-container {
   display: flex;
   flex-direction: column;

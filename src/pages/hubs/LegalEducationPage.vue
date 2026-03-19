@@ -19,34 +19,10 @@
       <VaCard class="stat-card">
         <VaCardContent>
           <div class="stat-item">
-            <VaIcon name="topic" color="success" size="2.5rem" />
-            <div class="stat-content">
-              <div class="stat-value">{{ stats.total_subtopics }}</div>
-              <div class="stat-label">Total Subtopics</div>
-            </div>
-          </div>
-        </VaCardContent>
-      </VaCard>
-
-      <VaCard class="stat-card">
-        <VaCardContent>
-          <div class="stat-item">
             <VaIcon name="description" color="info" size="2.5rem" />
             <div class="stat-content">
               <div class="stat-value">{{ stats.total_materials }}</div>
               <div class="stat-label">Total Materials</div>
-            </div>
-          </div>
-        </VaCardContent>
-      </VaCard>
-
-      <VaCard class="stat-card">
-        <VaCardContent>
-          <div class="stat-item">
-            <VaIcon name="warning" color="warning" size="2.5rem" />
-            <div class="stat-content">
-              <div class="stat-value">{{ stats.topics_without_subtopics }}</div>
-              <div class="stat-label">Topics Need Subtopics</div>
             </div>
           </div>
         </VaCardContent>
@@ -66,7 +42,7 @@
 
             <VaSelect v-model="statusFilter" placeholder="Status" :options="statusOptions" clearable />
 
-            <VaButton icon="refresh" @click="loadData">Refresh</VaButton>
+            <VaButton icon="refresh" preset="secondary" @click="loadData" />
           </div>
 
           <div class="action-buttons">
@@ -90,41 +66,63 @@
 
     <div v-else class="topics-grid">
       <VaCard v-for="topic in topics" :key="topic.id" class="topic-card" :class="{ inactive: !topic.is_active }">
-        <VaCardContent>
-          <div class="topic-header">
-            <div class="topic-icon">{{ topic.icon || '📚' }}</div>
-            <VaBadge :text="topic.is_active ? 'Active' : 'Inactive'" :color="topic.is_active ? 'success' : 'danger'" />
-          </div>
-
-          <h3 class="topic-title">{{ topic.name }}</h3>
-          <p class="topic-subtitle">{{ topic.name_sw }}</p>
-          <p class="topic-description">{{ topic.description }}</p>
-
-          <div class="topic-stats">
-            <div class="stat-badge">
-              <VaIcon name="topic" size="small" />
-              <span>{{ topic.subtopics_count }} subtopics</span>
-            </div>
-            <div class="stat-badge">
-              <VaIcon name="description" size="small" />
-              <span>{{ topic.materials_count }} materials</span>
+        <!-- Language panel split -->
+        <div class="topic-lang-panels">
+          <!-- Swahili panel -->
+          <div class="lang-panel lang-panel--sw" @click="viewTopicByLang(topic, 'sw')">
+            <div class="lang-flag">🇹🇿</div>
+            <div class="lang-label">Swahili</div>
+            <h3 class="lang-title">{{ topic.name_sw }}</h3>
+            <p class="lang-description">{{ topic.description_sw || topic.description }}</p>
+            <div class="lang-cta">
+              <VaIcon name="arrow_forward" size="small" />
+              <span>Tazama Nyaraka</span>
             </div>
           </div>
 
-          <div class="topic-actions">
-            <VaButton size="small" preset="plain" icon="visibility" @click="viewTopic(topic)">View</VaButton>
-            <VaButton size="small" preset="plain" icon="edit" @click="editTopic(topic)">Edit</VaButton>
-            <VaButton
-              size="small"
-              preset="plain"
-              :icon="topic.is_active ? 'toggle_on' : 'toggle_off'"
-              @click="toggleTopic(topic)"
-            >
-              Toggle
-            </VaButton>
-            <VaButton size="small" preset="plain" icon="delete" color="danger" @click="deleteTopic(topic)">
-              Delete
-            </VaButton>
+          <!-- Divider -->
+          <div class="lang-divider" />
+
+          <!-- English panel -->
+          <div class="lang-panel lang-panel--en" @click="viewTopicByLang(topic, 'en')">
+            <div class="lang-flag">🇬🇧</div>
+            <div class="lang-label">English</div>
+            <h3 class="lang-title">{{ topic.name }}</h3>
+            <p class="lang-description">{{ topic.description }}</p>
+            <div class="lang-cta">
+              <VaIcon name="arrow_forward" size="small" />
+              <span>View Materials</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer with stats + actions -->
+        <VaCardContent class="topic-footer">
+          <div class="topic-footer-row">
+            <div class="topic-status">
+              <VaBadge
+                :text="topic.is_active ? 'Active' : 'Inactive'"
+                :color="topic.is_active ? 'success' : 'danger'"
+              />
+              <span class="stat-badge">
+                <VaIcon name="description" size="small" />
+                {{ topic.materials_count }} materials
+              </span>
+            </div>
+            <div class="topic-actions">
+              <VaButton size="small" preset="plain" icon="edit" @click="editTopic(topic)">Edit</VaButton>
+              <VaButton
+                size="small"
+                preset="plain"
+                :icon="topic.is_active ? 'toggle_on' : 'toggle_off'"
+                @click="toggleTopic(topic)"
+              >
+                Toggle
+              </VaButton>
+              <VaButton size="small" preset="plain" icon="delete" color="danger" @click="deleteTopic(topic)">
+                Delete
+              </VaButton>
+            </div>
           </div>
         </VaCardContent>
       </VaCard>
@@ -247,6 +245,7 @@ const saveTopic = async () => {
       notify({ message: 'Topic created successfully', color: 'success' })
     }
 
+    await loadData()
     showModal.value = false
   } catch (error: any) {
     notify({
@@ -259,6 +258,7 @@ const saveTopic = async () => {
 const toggleTopic = async (topic: any) => {
   try {
     await hubsStore.toggleTopic(topic.id)
+    await loadData()
     notify({
       message: `Topic ${topic.is_active ? 'deactivated' : 'activated'}`,
       color: 'success',
@@ -276,6 +276,7 @@ const deleteTopic = async (topic: any) => {
 
   try {
     await hubsStore.deleteTopic(topic.id)
+    await loadData()
     notify({ message: 'Topic deleted successfully', color: 'success' })
   } catch (error: any) {
     notify({
@@ -285,8 +286,9 @@ const deleteTopic = async (topic: any) => {
   }
 }
 
-const viewTopic = (topic: any) => {
-  router.push({ name: 'subtopics', params: { topicId: topic.id } })
+const viewTopicByLang = (topic: any, lang: 'en' | 'sw') => {
+  console.log('Clicked viewTopicByLang:', topic, lang)
+  router.push({ name: 'hubs-materials', params: { topicId: String(topic.id) }, query: { language: lang } })
 }
 
 // Mount
@@ -297,7 +299,7 @@ onMounted(() => {
 
 <style scoped>
 .legal-education-page {
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
 .page-title {
@@ -312,6 +314,12 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .stat-card {
@@ -350,24 +358,33 @@ onMounted(() => {
   gap: 1rem;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
 .search-filters {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   gap: 1rem;
   flex: 1;
   align-items: center;
 }
 
-.search-filters .va-input {
-  min-width: 250px;
+.search-filters :deep(.va-input),
+.search-filters :deep(.va-select) {
+  min-width: 150px;
   flex: 1;
-  max-width: 400px;
 }
 
-.search-filters .va-select {
-  min-width: 150px;
+@media (min-width: 768px) {
+  .search-filters :deep(.va-input) {
+    max-width: 400px;
+  }
+}
+
+.toolbar :deep(.va-button) {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .action-buttons {
@@ -380,7 +397,7 @@ onMounted(() => {
 .topics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .topic-card {
@@ -465,8 +482,14 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem;
+  padding: 2rem;
   text-align: center;
+}
+
+@media (min-width: 768px) {
+  .empty-state {
+    padding: 4rem;
+  }
 }
 
 .empty-message {
@@ -486,5 +509,105 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+/* Language Split Panels */
+.topic-lang-panels {
+  display: flex;
+  min-height: 180px;
+  overflow: hidden;
+  border-radius: 6px 6px 0 0;
+}
+
+.lang-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.2rem 1rem;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+}
+
+.lang-panel--sw {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-right: 2px solid var(--va-background-border);
+}
+
+.lang-panel--sw:hover {
+  background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+  transform: scale(1.02);
+}
+
+.lang-panel--en {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+}
+
+.lang-panel--en:hover {
+  background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+  transform: scale(1.02);
+}
+
+.lang-flag {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.lang-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--va-text-secondary);
+}
+
+.lang-title {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.lang-description {
+  font-size: 0.8rem;
+  color: var(--va-text-secondary);
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.lang-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--va-primary);
+  margin-top: auto;
+}
+
+.lang-divider {
+  width: 2px;
+  background: var(--va-background-border);
+  flex-shrink: 0;
+}
+
+/* Footer */
+.topic-footer .topic-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.topic-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 </style>

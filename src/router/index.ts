@@ -167,11 +167,11 @@ const routes: Array<RouteRecordRaw> = [
           {
             name: 'subtopics',
             path: 'legal-education/:topicId/subtopics',
-            component: () => import('../pages/hubs/SubtopicsPage.vue'),
+            redirect: (to) => ({ name: 'hubs-materials', params: { topicId: to.params.topicId } }),
           },
           {
             name: 'hubs-materials',
-            path: 'legal-education/:topicId/subtopics/:subtopicId/materials',
+            path: 'legal-education/:topicId/materials',
             component: () => import('../pages/hubs/MaterialsPage.vue'),
           },
           {
