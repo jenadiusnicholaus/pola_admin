@@ -297,6 +297,13 @@
         <VaInput v-model="editForm.title" label="Title" required />
         <VaTextarea v-model="editForm.description" label="Description" :min-rows="3" />
         <VaInput v-model="editForm.price" label="Price (TSh)" type="number" step="0.01" />
+        <VaSelect
+          v-model="editForm.language"
+          label="Language"
+          :options="languageOptions"
+          value-by="value"
+          text-by="text"
+        />
         <VaCheckbox v-model="editForm.is_active" label="Active" />
       </div>
 
@@ -627,6 +634,7 @@ const editMaterial = (material: any) => {
     title: material.title,
     description: material.description || '',
     price: material.price,
+    language: material.language,
     is_active: material.is_active,
   }
   showEditModal.value = true
@@ -640,6 +648,7 @@ const saveMaterial = async () => {
       title: editForm.value.title,
       description: editForm.value.description,
       price: editForm.value.price,
+      language: editForm.value.language,
       is_active: editForm.value.is_active,
     })
 

@@ -249,6 +249,7 @@ const consultantTypeOptions = [
   { text: 'Advocate', value: 'advocate' },
   { text: 'Lawyer', value: 'lawyer' },
   { text: 'Paralegal', value: 'paralegal' },
+  { text: 'Law Firm', value: 'law_firm' },
 ]
 
 const orderingOptions = [
