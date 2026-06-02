@@ -171,6 +171,20 @@ export const subscriptionsService = {
   },
 
   /**
+   * Toggle subscription status
+   */
+  toggle: async (id: number, status: 'active' | 'inactive'): Promise<Subscription> => {
+    const requestParams: IRequestParams = {
+      url: API_ENDPOINTS.subscriptions.users.toggle(id),
+      method: 'PATCH',
+      data: { status },
+    }
+
+    const response = await makeRequest(requestParams)
+    return response.data
+  },
+
+  /**
    * Create subscription for user
    */
   createForUser: async (data: CreateSubscriptionForUserData): Promise<Subscription> => {

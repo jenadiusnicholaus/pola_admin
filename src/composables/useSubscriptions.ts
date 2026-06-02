@@ -166,6 +166,31 @@ export function useSubscriptions() {
   }
 
   /**
+   * Toggle subscription status
+   */
+  const toggleSubscription = async (id: number, status: 'active' | 'inactive') => {
+    try {
+      const updated = await subscriptionsService.toggle(id, status)
+      const index = subscriptions.value.findIndex((s) => s.id === id)
+      if (index !== -1) {
+        subscriptions.value[index] = updated
+      }
+      notify({
+        message: `Subscription successfully marked as ${status}`,
+        color: 'success',
+      })
+      return updated
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.detail || `Failed to mark subscription as ${status}`
+      notify({
+        message: errorMsg,
+        color: 'danger',
+      })
+      throw err
+    }
+  }
+
+  /**
    * Create subscription for user
    */
   const createForUser = async (data: CreateSubscriptionForUserData) => {
@@ -213,6 +238,7 @@ export function useSubscriptions() {
     cancelSubscription,
     extendSubscription,
     activateSubscription,
+    toggleSubscription,
     createForUser,
   }
 }

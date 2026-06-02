@@ -2,13 +2,15 @@
   <div class="materials-page">
     <!-- Header with Back Button -->
     <div class="page-header">
-      <VaButton icon="arrow_back" preset="plain" @click="goBack">Back to Topics</VaButton>
-      <div v-if="selectedTopic">
-        <h1 class="page-title">{{ languageFilter === 'sw' ? selectedTopic.name_sw : selectedTopic.name }}</h1>
-        <p class="page-subtitle">{{ languageFilter === 'sw' ? selectedTopic.name : selectedTopic.name_sw }}</p>
+      <VaButton icon="arrow_back" preset="plain" @click="goBack">Back to Subtopics</VaButton>
+      <div v-if="selectedSubtopic">
+        <h1 class="page-title">{{ languageFilter === 'sw' ? selectedSubtopic.name_sw : selectedSubtopic.name }}</h1>
+        <p class="page-subtitle">
+          {{ languageFilter === 'sw' ? selectedSubtopic.topic_name_sw : selectedSubtopic.topic_name }}
+        </p>
       </div>
       <div v-else>
-        <h1 class="page-title">Topic Materials</h1>
+        <h1 class="page-title">Subtopic Materials</h1>
       </div>
     </div>
 
@@ -304,6 +306,14 @@
           value-by="value"
           text-by="text"
         />
+        <VaSelect
+          v-model="editForm.subtopic"
+          label="Subtopic"
+          :options="subtopics"
+          value-by="id"
+          text-by="name"
+          required
+        />
         <VaCheckbox v-model="editForm.is_active" label="Active" />
       </div>
 
@@ -417,25 +427,26 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHubsStore } from '../../stores/hubs-store'
 import { useToast } from 'vuestic-ui'
 import { VuePDF, usePDF } from '@tato30/vue-pdf'
-
 const route = useRoute()
 const router = useRouter()
 const { init: notify } = useToast()
 const hubsStore = useHubsStore()
 
-// Check if required params exist, if not redirect
-if (!route.params.topicId) {
-  router.replace({ name: 'legal-education' })
-}
-
 const topicId = ref<number>(Number(route.params.topicId) || 0)
+const subtopicId = ref<number>(Number(route.params.subtopicId) || 0)
 // Pre-populate language filter from query param (set by language panel click)
 const initialLanguage = route.query.language as string | undefined
 
 // Computed from store
-const loading = computed(() => hubsStore.loadingHubContent)
-const materials = computed(() => hubsStore.hubContent)
-const selectedTopic = computed(() => hubsStore.selectedTopic)
+const loading = computed(() => hubsStore.loadingHubContent || hubsStore.loadingMaterials)
+const materials = computed(() => (subtopicId.value ? hubsStore.subtopicMaterials : hubsStore.hubContent))
+const subtopics = computed(() => hubsStore.subtopics)
+const selectedSubtopic = computed(() => {
+  if (hubsStore.selectedSubtopic && hubsStore.selectedSubtopic.id === subtopicId.value) {
+    return hubsStore.selectedSubtopic
+  }
+  return hubsStore.subtopics.find((s) => s.id === subtopicId.value) || null
+})
 
 // Modal state
 const showViewModal = ref(false)
@@ -564,28 +575,31 @@ const languageOptions = [
 // Load data
 const loadData = async () => {
   try {
-    // Load topic details
-    if (!hubsStore.selectedTopic || hubsStore.selectedTopic.id !== topicId.value) {
+    // Load subtopic context if needed
+    if (!hubsStore.subtopics.length || !hubsStore.subtopics.some((s) => s.id === subtopicId.value)) {
       await hubsStore.fetchTopicById(topicId.value)
     }
 
-    const topicSlug = hubsStore.selectedTopic?.slug
-
     const filters: any = {
-      ordering: '-created_at',
-      page: 1,
-      page_size: 20,
+      is_active: statusFilter.value,
+      is_approved: true, // Show approved by default
     }
-    if (topicSlug) filters.topic_slug = topicSlug
+
+    // Add common filters
     if (searchQuery.value) filters.search = searchQuery.value
     if (typeFilter.value) filters.content_type = typeFilter.value
-    if (statusFilter.value !== null && statusFilter.value !== undefined) filters.is_active = statusFilter.value
     if (languageFilter.value) filters.language = languageFilter.value
 
-    // Load materials with correct API filters
-    await hubsStore.fetchHubContent(filters)
-    console.log('API filters used:', filters)
-    console.log('Loaded materials:', hubsStore.hubContent)
+    if (subtopicId.value) {
+      // Use the specific subtopic materials endpoint for reliable filtering
+      await hubsStore.fetchSubtopicMaterials(subtopicId.value, filters)
+      console.log('Loaded subtopic materials:', hubsStore.subtopicMaterials)
+    } else {
+      // Fallback to general content list if no subtopic (though in this flow there should be one)
+      filters.topic_slug = hubsStore.selectedTopic?.slug
+      await hubsStore.fetchHubContent(filters)
+      console.log('Loaded topic materials (fallback):', hubsStore.hubContent)
+    }
   } catch (error: any) {
     notify({
       message: error.message || 'Failed to load materials',
@@ -596,7 +610,11 @@ const loadData = async () => {
 
 // Navigation
 const goBack = () => {
-  router.push({ name: 'legal-education' })
+  router.push({
+    name: 'subtopics',
+    params: { topicId: String(topicId.value) },
+    query: { language: languageFilter.value },
+  })
 }
 
 // Helper to get full file URL
@@ -635,6 +653,7 @@ const editMaterial = (material: any) => {
     description: material.description || '',
     price: material.price,
     language: material.language,
+    subtopic: material.subtopic || subtopicId.value,
     is_active: material.is_active,
   }
   showEditModal.value = true
@@ -649,6 +668,8 @@ const saveMaterial = async () => {
       description: editForm.value.description,
       price: editForm.value.price,
       language: editForm.value.language,
+      subtopic: editForm.value.subtopic,
+      subtopic_id: editForm.value.subtopic,
       is_active: editForm.value.is_active,
     })
 
@@ -668,6 +689,7 @@ const openCreateModal = () => {
     title: '',
     description: '',
     topic: topicId.value,
+    subtopic: subtopicId.value, // Add subtopic
     price: '0',
     uploader_type: 'admin',
     content_type: 'document',
@@ -709,6 +731,8 @@ const saveNewMaterial = async () => {
       description: createForm.value.description,
       topic: createForm.value.topic,
       topic_id: createForm.value.topic,
+      subtopic: createForm.value.subtopic, // Ensure subtopic is sent
+      subtopic_id: createForm.value.subtopic,
       hub_type: 'legal_ed',
       price: createForm.value.price,
       uploader_type: createForm.value.uploader_type,

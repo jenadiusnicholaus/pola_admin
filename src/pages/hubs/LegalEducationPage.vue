@@ -288,7 +288,7 @@ const deleteTopic = async (topic: any) => {
 
 const viewTopicByLang = (topic: any, lang: 'en' | 'sw') => {
   console.log('Clicked viewTopicByLang:', topic, lang)
-  router.push({ name: 'hubs-materials', params: { topicId: String(topic.id) }, query: { language: lang } })
+  router.push({ name: 'subtopics', params: { topicId: String(topic.id) }, query: { language: lang } })
 }
 
 // Mount

@@ -14,7 +14,7 @@ const {
   fetchStatistics,
   extendSubscription,
   cancelSubscription,
-  activateSubscription,
+  toggleSubscription,
   createForUser,
 } = useSubscriptions()
 const { plans, fetchPlans } = usePlans()
@@ -140,12 +140,13 @@ const handleCancel = async () => {
   }
 }
 
-const handleActivate = async (subscription: Subscription) => {
+const handleToggle = async (subscription: Subscription) => {
   try {
-    await activateSubscription(subscription.id)
+    const newStatus = subscription.status === 'active' ? 'inactive' : 'active'
+    await toggleSubscription(subscription.id, newStatus)
     await Promise.all([fetchSubscriptions(prepareFilters()), fetchStatistics()])
   } catch (error) {
-    console.error('Failed to activate subscription:', error)
+    console.error('Failed to toggle subscription:', error)
   }
 }
 
@@ -381,14 +382,24 @@ const getDaysRemainingColor = (days: number) => {
                 @click="openDetailsModal(rowData)"
               />
               <VaButton
-                v-if="rowData.status === 'pending'"
+                v-if="rowData.status !== 'active'"
                 preset="plain"
-                icon="check_circle"
+                icon="power_settings_new"
                 size="small"
                 color="success"
                 title="Activate"
-                @click="handleActivate(rowData)"
+                @click="handleToggle(rowData)"
               />
+              <VaButton
+                v-if="rowData.status === 'active'"
+                preset="plain"
+                icon="power_off"
+                size="small"
+                color="warning"
+                title="Deactivate"
+                @click="handleToggle(rowData)"
+              />
+
               <VaButton
                 v-if="rowData.status === 'active'"
                 preset="plain"

@@ -159,6 +159,10 @@ export const API_ENDPOINTS = {
         buildUrl(import.meta.env.VITE_SUBSCRIPTIONS_USERS_ACTIVATE || '/admin/subscriptions/users/{id}/activate/', {
           id: String(id),
         }),
+      toggle: (id: number) =>
+        buildUrl(import.meta.env.VITE_SUBSCRIPTIONS_USERS_TOGGLE || '/admin/hubs/subscriptions/{id}/toggle/', {
+          id: String(id),
+        }),
       create: () =>
         buildUrl(import.meta.env.VITE_SUBSCRIPTIONS_CREATE || '/admin/subscriptions/users/create_for_user/'),
     },
