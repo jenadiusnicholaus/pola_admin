@@ -3,7 +3,7 @@
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">About Us</h1>
-        <p class="page-subtitle">Learn more about Pola Admin and our mission</p>
+        <p class="page-subtitle">Learn more about POLA and our mission</p>
       </div>
 
       <div class="about-content">
@@ -11,9 +11,9 @@
           <VaCardContent>
             <h2 class="section-title">Our Mission</h2>
             <p class="about-text">
-              Pola Admin is dedicated to making legal education and resources accessible to everyone in Tanzania. We
-              believe that knowledge is power, and everyone should have access to quality legal information regardless
-              of their background or location.
+              POLA is dedicated to making legal education and resources accessible to everyone in Tanzania. We believe
+              that knowledge is power, and everyone should have access to quality legal information regardless of their
+              background or location.
             </p>
             <p class="about-text">
               Our platform brings together legal professionals, students, and anyone interested in Tanzanian law to

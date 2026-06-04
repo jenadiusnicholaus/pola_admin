@@ -4,7 +4,7 @@
       <div class="footer-section">
         <div class="footer-brand">
           <VaIcon name="gavel" size="2rem" color="primary" />
-          <span class="brand-text">Pola Admin</span>
+          <span class="brand-text">POLA</span>
         </div>
         <p class="footer-description">
           Your trusted platform for legal education, consultation, and resources in Tanzania.
@@ -42,7 +42,7 @@
     </div>
 
     <div class="footer-bottom">
-      <p>&copy; {{ currentYear }} Pola Admin. All rights reserved.</p>
+      <p>&copy; {{ currentYear }} POLA. All rights reserved.</p>
     </div>
   </footer>
 </template>

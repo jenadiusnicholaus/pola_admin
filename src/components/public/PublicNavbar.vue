@@ -4,7 +4,7 @@
       <div class="navbar-brand">
         <RouterLink to="/" class="brand-link">
           <VaIcon name="gavel" size="2rem" color="primary" />
-          <span class="brand-text">Pola Admin</span>
+          <span class="brand-text">POLA</span>
         </RouterLink>
       </div>
 
