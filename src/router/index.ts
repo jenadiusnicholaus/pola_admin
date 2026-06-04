@@ -2,18 +2,47 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 
 import AuthLayout from '../layouts/AuthLayout.vue'
 import AppLayout from '../layouts/AppLayout.vue'
+import PublicLayout from '../layouts/PublicLayout.vue'
 
 import RouteViewComponent from '../layouts/RouterBypass.vue'
 import { userAuthGuard } from './guards'
 
 const routes: Array<RouteRecordRaw> = [
   {
-    path: '/:pathMatch(.*)*',
-    redirect: { name: 'dashboard' },
+    name: 'public',
+    path: '/',
+    component: PublicLayout,
+    children: [
+      {
+        name: 'home',
+        path: '',
+        component: () => import('../pages/public/HomePage.vue'),
+      },
+      {
+        name: 'about',
+        path: 'about',
+        component: () => import('../pages/public/AboutPage.vue'),
+      },
+      {
+        name: 'privacy',
+        path: 'privacy',
+        component: () => import('../pages/public/PrivacyPolicyPage.vue'),
+      },
+      {
+        name: 'terms',
+        path: 'terms',
+        component: () => import('../pages/public/TermsPolicyPage.vue'),
+      },
+      {
+        name: 'refund',
+        path: 'refund',
+        component: () => import('../pages/public/RefundPolicyPage.vue'),
+      },
+    ],
   },
   {
     name: 'admin',
-    path: '/',
+    path: '/admin',
     component: AppLayout,
     redirect: { name: 'dashboard' },
     beforeEnter: userAuthGuard,
@@ -228,6 +257,10 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../pages/faq/FaqPage.vue'),
       },
     ],
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: { name: 'home' },
   },
   {
     path: '/auth',
