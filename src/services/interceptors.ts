@@ -51,6 +51,7 @@ axios.interceptors.request.use(
       '/authentication/reset-password/',
       '/authentication/confirm-reset-password/',
       '/authentication/admin-login/',
+      '/doc-templates/document-content/',
     ]
     const isToBeIgnored = tobeInoredUrl.some((url) => config.url?.includes(url))
     console.log('[Interceptor] Should ignore auth?', isToBeIgnored)
