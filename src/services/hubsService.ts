@@ -30,24 +30,24 @@ export interface TopicDetail extends Topic {
   subtopics: Subtopic[]
 }
 
+export interface SubtopicTopic {
+  id: number
+  name: string
+  slug: string
+}
+
 export interface Subtopic {
   id: number
-  topic: number
-  topic_name?: string
-  topic_name_sw?: string
-  topic_slug?: string
+  topic: SubtopicTopic | number
   name: string
-  name_sw: string
   slug: string
   description: string
-  description_sw: string
+  language: string
   display_order: number
   is_active: boolean
   materials_count: number
-  active_materials_count?: number
-  approved_materials_count?: number
-  created_at: string
-  updated_at: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Material {
@@ -105,7 +105,9 @@ export interface TopicFilters {
 }
 
 export interface SubtopicFilters {
+  topic?: number
   topic_id?: number
+  language?: string
   is_active?: boolean
   search?: string
   no_materials?: boolean
@@ -378,10 +380,9 @@ export const hubsService = {
   createSubtopic: async (data: {
     topic: number
     name: string
-    name_sw: string
     slug?: string
     description: string
-    description_sw: string
+    language: string
     display_order: number
     is_active: boolean
   }): Promise<Subtopic> => {
@@ -403,10 +404,9 @@ export const hubsService = {
     data: {
       topic: number
       name: string
-      name_sw: string
-      slug: string
+      slug?: string
       description: string
-      description_sw: string
+      language: string
       display_order: number
       is_active: boolean
     },
@@ -494,11 +494,19 @@ export const hubsService = {
    */
   getSubtopicMaterials: async (
     id: number,
-    filters?: { is_approved?: boolean; is_active?: boolean },
+    filters?: {
+      language?: string
+      is_approved?: boolean
+      is_active?: boolean
+      content_type?: string
+      search?: string
+    },
   ): Promise<{
     subtopic_id: number
     subtopic_name: string
+    topic_id: number
     topic_name: string
+    language: string
     materials_count: number
     materials: Material[]
   }> => {

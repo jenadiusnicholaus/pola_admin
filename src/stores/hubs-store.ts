@@ -262,21 +262,15 @@ export const useHubsStore = defineStore('hubs', {
     async createSubtopic(data: {
       topic: number
       name: string
-      name_sw: string
       slug?: string
       description: string
-      description_sw: string
+      language: string
       display_order: number
       is_active: boolean
     }) {
       try {
         const newSubtopic = await hubsService.createSubtopic(data)
         this.subtopics.unshift(newSubtopic)
-        // Refresh topic details to update counts
-        if (this.selectedTopic) {
-          await this.fetchTopicById(this.selectedTopic.id)
-        }
-        await this.fetchStatistics()
         return newSubtopic
       } catch (error) {
         console.error('Failed to create subtopic:', error)
@@ -292,10 +286,9 @@ export const useHubsStore = defineStore('hubs', {
       data: {
         topic: number
         name: string
-        name_sw: string
-        slug: string
+        slug?: string
         description: string
-        description_sw: string
+        language: string
         display_order: number
         is_active: boolean
       },
@@ -357,18 +350,38 @@ export const useHubsStore = defineStore('hubs', {
     /**
      * Fetch materials for a subtopic
      */
-    async fetchSubtopicMaterials(id: number, filters?: { is_approved?: boolean; is_active?: boolean }) {
+    async fetchSubtopicMaterials(
+      id: number,
+      filters?: {
+        language?: string
+        is_approved?: boolean
+        is_active?: boolean
+        content_type?: string
+        search?: string
+      },
+    ) {
       this.loadingMaterials = true
       try {
         const response = await hubsService.getSubtopicMaterials(id, filters)
         this.subtopicMaterials = response.materials
-        // Also set the selected subtopic if we don't have it
+        // Set selectedSubtopic from response metadata if not already set
         if (!this.selectedSubtopic || this.selectedSubtopic.id !== id) {
-          if (Array.isArray(this.subtopics)) {
-            const subtopic = this.subtopics.find((s) => s.id === id)
-            if (subtopic) {
-              this.selectedSubtopic = subtopic
-            }
+          const fromStore = Array.isArray(this.subtopics) ? this.subtopics.find((s) => s.id === id) : null
+          if (fromStore) {
+            this.selectedSubtopic = fromStore
+          } else {
+            // Build a minimal subtopic object from response metadata
+            this.selectedSubtopic = {
+              id,
+              topic: { id: response.topic_id, name: response.topic_name, slug: '' },
+              name: response.subtopic_name,
+              slug: '',
+              description: '',
+              language: response.language,
+              display_order: 0,
+              is_active: true,
+              materials_count: response.materials_count,
+            } as any
           }
         }
         return response

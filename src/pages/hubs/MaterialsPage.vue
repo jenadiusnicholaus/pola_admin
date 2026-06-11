@@ -4,9 +4,9 @@
     <div class="page-header">
       <VaButton icon="arrow_back" preset="plain" @click="goBack">Back to Subtopics</VaButton>
       <div v-if="selectedSubtopic">
-        <h1 class="page-title">{{ languageFilter === 'sw' ? selectedSubtopic.name_sw : selectedSubtopic.name }}</h1>
+        <h1 class="page-title">{{ selectedSubtopic.name }}</h1>
         <p class="page-subtitle">
-          {{ languageFilter === 'sw' ? selectedSubtopic.topic_name_sw : selectedSubtopic.topic_name }}
+          {{ typeof selectedSubtopic.topic === 'object' ? selectedSubtopic.topic.name : '' }}
         </p>
       </div>
       <div v-else>
@@ -213,12 +213,25 @@
               </VaSelect>
 
               <VaSelect
+                v-model="approvalFilter"
+                placeholder="Approval"
+                :options="approvalOptions"
+                value-by="value"
+                text-by="text"
+                clearable
+                class="filter-select"
+              >
+                <template #prependInner>
+                  <VaIcon name="verified_user" color="secondary" size="small" />
+                </template>
+              </VaSelect>
+
+              <VaSelect
                 v-model="languageFilter"
                 placeholder="Language"
                 :options="languageOptions"
                 value-by="value"
                 text-by="text"
-                clearable
                 class="filter-select"
               >
                 <template #prependInner>
@@ -712,11 +725,12 @@ watch(
 const searchQuery = ref('')
 const typeFilter = ref<string | null>(null)
 const statusFilter = ref<boolean | null>(null)
-const languageFilter = ref<string | null>(initialLanguage || null)
+const approvalFilter = ref<boolean | null>(null)
+const languageFilter = ref<string>(initialLanguage || 'en')
 
 let searchTimeout: ReturnType<typeof setTimeout>
 
-watch([typeFilter, statusFilter, languageFilter], () => {
+watch([typeFilter, statusFilter, approvalFilter, languageFilter], () => {
   loadData()
 })
 
@@ -787,6 +801,12 @@ const languageOptions = [
   { text: 'Swahili', value: 'sw' },
 ]
 
+const approvalOptions = [
+  { text: 'Approved', value: true },
+  { text: 'Rejected', value: false },
+  { text: 'Pending', value: null },
+]
+
 // Load data
 const loadData = async () => {
   try {
@@ -795,15 +815,14 @@ const loadData = async () => {
       await hubsStore.fetchTopicById(topicId.value)
     }
 
-    const filters: any = {
-      is_active: statusFilter.value,
-      is_approved: true, // Show approved by default
-    }
+    const filters: any = {}
 
-    // Add common filters
+    // Apply filters — only include when set
+    if (languageFilter.value) filters.language = languageFilter.value
     if (searchQuery.value) filters.search = searchQuery.value
     if (typeFilter.value) filters.content_type = typeFilter.value
-    if (languageFilter.value) filters.language = languageFilter.value
+    if (statusFilter.value !== null) filters.is_active = statusFilter.value
+    if (approvalFilter.value !== null) filters.is_approved = approvalFilter.value
 
     if (subtopicId.value) {
       // Use the specific subtopic materials endpoint for reliable filtering

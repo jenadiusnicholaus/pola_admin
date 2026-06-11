@@ -21,7 +21,7 @@
           <div class="stat-item">
             <VaIcon name="folder" color="primary" size="2.5rem" />
             <div class="stat-content">
-              <div class="stat-value">{{ subtopics.length }}</div>
+              <div class="stat-value">{{ filteredSubtopics.length }}</div>
               <div class="stat-label">Total Subtopics</div>
             </div>
           </div>
@@ -51,6 +51,18 @@
                 <VaIcon name="search" />
               </template>
             </VaInput>
+
+            <VaSelect
+              v-model="languageFilter"
+              :options="languageOptions"
+              value-by="value"
+              text-by="text"
+              placeholder="Language"
+            >
+              <template #prependInner>
+                <VaIcon name="language" size="small" />
+              </template>
+            </VaSelect>
 
             <VaSelect v-model="statusFilter" placeholder="Status" :options="statusOptions" clearable />
 
@@ -85,14 +97,17 @@
       >
         <VaCardContent class="subtopic-content" @click="viewMaterials(subtopic)">
           <div class="subtopic-header">
-            <h3 class="subtopic-title">{{ languageFilter === 'sw' ? subtopic.name_sw : subtopic.name }}</h3>
-            <VaBadge
-              :text="subtopic.is_active ? 'Active' : 'Inactive'"
-              :color="subtopic.is_active ? 'success' : 'danger'"
-            />
+            <h3 class="subtopic-title">{{ subtopic.name }}</h3>
+            <div class="subtopic-badges">
+              <VaBadge :text="subtopic.language === 'sw' ? 'Swahili' : 'English'" color="info" />
+              <VaBadge
+                :text="subtopic.is_active ? 'Active' : 'Inactive'"
+                :color="subtopic.is_active ? 'success' : 'danger'"
+              />
+            </div>
           </div>
           <p class="subtopic-description">
-            {{ languageFilter === 'sw' ? subtopic.description_sw || subtopic.description : subtopic.description }}
+            {{ subtopic.description }}
           </p>
 
           <div class="subtopic-stats">
@@ -128,10 +143,25 @@
       hide-default-actions
     >
       <div class="modal-form">
-        <VaInput v-model="form.name" label="Subtopic Name (English)" required />
-        <VaInput v-model="form.name_sw" label="Subtopic Name (Swahili)" required />
-        <VaTextarea v-model="form.description" label="Description (English)" :min-rows="3" />
-        <VaTextarea v-model="form.description_sw" label="Description (Swahili)" :min-rows="3" />
+        <VaSelect
+          v-model="form.language"
+          label="Language"
+          :options="languageOptions"
+          value-by="value"
+          text-by="text"
+          required
+          :disabled="isEditing"
+        />
+        <VaInput
+          v-model="form.name"
+          :label="form.language === 'sw' ? 'Subtopic Name (Swahili)' : 'Subtopic Name (English)'"
+          required
+        />
+        <VaTextarea
+          v-model="form.description"
+          :label="form.language === 'sw' ? 'Description (Swahili)' : 'Description (English)'"
+          :min-rows="3"
+        />
         <div class="form-row">
           <VaInput v-model.number="form.display_order" type="number" label="Display Order" />
         </div>
@@ -146,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHubsStore } from '../../stores/hubs-store'
 import { useToast } from 'vuestic-ui'
@@ -164,10 +194,6 @@ const loading = computed(() => hubsStore.loadingSubtopics)
 const subtopics = computed(() => hubsStore.subtopics)
 const selectedTopic = computed(() => hubsStore.selectedTopic)
 
-const totalMaterials = computed(() => {
-  return subtopics.value.reduce((acc, s) => acc + (s.materials_count || 0), 0)
-})
-
 // Filters
 const searchQuery = ref('')
 const statusFilter = ref<boolean | null>(null)
@@ -177,14 +203,23 @@ const statusOptions = [
   { text: 'Inactive', value: false },
 ]
 
+const languageOptions = [
+  { text: 'English', value: 'en' },
+  { text: 'Swahili', value: 'sw' },
+]
+
+// Filter locally: language match is strict — only show subtopics whose language field matches the selected language
 const filteredSubtopics = computed(() => {
   return subtopics.value.filter((s) => {
-    const matchesSearch =
-      s.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      s.name_sw.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchesSearch = s.name.toLowerCase().includes(searchQuery.value.toLowerCase())
     const matchesStatus = statusFilter.value === null || s.is_active === statusFilter.value
-    return matchesSearch && matchesStatus
+    const matchesLanguage = (s.language || 'en') === languageFilter.value
+    return matchesSearch && matchesStatus && matchesLanguage
   })
+})
+
+const totalMaterials = computed(() => {
+  return filteredSubtopics.value.reduce((acc, s) => acc + (s.materials_count || 0), 0)
 })
 
 // Modal
@@ -192,19 +227,19 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const editingId = ref<number | null>(null)
 const form = ref({
-  topic: topicId.value,
+  topic: topicId.value as number,
   name: '',
-  name_sw: '',
   description: '',
-  description_sw: '',
+  language: languageFilter.value || 'en',
   display_order: 0,
   is_active: true,
 })
 
-// Load data
+// Load data — sequential: fetchTopicById first for header info, then fetchSubtopics for filtered list
 const loadData = async () => {
   try {
     await hubsStore.fetchTopicById(topicId.value)
+    await hubsStore.fetchSubtopics({ topic: topicId.value, language: languageFilter.value })
   } catch (error: any) {
     notify({
       message: error.message || 'Failed to load subtopics',
@@ -212,6 +247,11 @@ const loadData = async () => {
     })
   }
 }
+
+// Refetch from API when language filter changes
+watch(languageFilter, () => {
+  hubsStore.fetchSubtopics({ topic: topicId.value, language: languageFilter.value })
+})
 
 // Navigation
 const goBack = () => {
@@ -236,9 +276,8 @@ const openCreateModal = () => {
   form.value = {
     topic: topicId.value,
     name: '',
-    name_sw: '',
     description: '',
-    description_sw: '',
+    language: languageFilter.value || 'en',
     display_order: subtopics.value.length,
     is_active: true,
   }
@@ -248,12 +287,12 @@ const openCreateModal = () => {
 const editSubtopic = (subtopic: any) => {
   isEditing.value = true
   editingId.value = subtopic.id
+  const topicIdNum = typeof subtopic.topic === 'object' ? subtopic.topic.id : subtopic.topic
   form.value = {
-    topic: topicId.value,
+    topic: topicIdNum,
     name: subtopic.name,
-    name_sw: subtopic.name_sw,
     description: subtopic.description,
-    description_sw: subtopic.description_sw,
+    language: subtopic.language || 'en',
     display_order: subtopic.display_order,
     is_active: subtopic.is_active,
   }
@@ -261,12 +300,17 @@ const editSubtopic = (subtopic: any) => {
 }
 
 const saveSubtopic = async () => {
+  if (!form.value.name.trim()) {
+    notify({ message: 'Subtopic name is required', color: 'warning' })
+    return
+  }
+
   try {
     if (isEditing.value && editingId.value) {
-      await hubsStore.updateSubtopic(editingId.value, { ...form.value, slug: '' } as any)
+      await hubsStore.updateSubtopic(editingId.value, form.value as any)
       notify({ message: 'Subtopic updated successfully', color: 'success' })
     } else {
-      await hubsStore.createSubtopic(form.value)
+      await hubsStore.createSubtopic(form.value as any)
       notify({ message: 'Subtopic created successfully', color: 'success' })
     }
 
@@ -434,6 +478,13 @@ onMounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.5rem;
+}
+
+.subtopic-badges {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .subtopic-title {
