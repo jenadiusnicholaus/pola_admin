@@ -208,13 +208,12 @@ const languageOptions = [
   { text: 'Swahili', value: 'sw' },
 ]
 
-// Filter locally: language match is strict — only show subtopics whose language field matches the selected language
+// Filter locally: search and status only — language filtering is handled by API
 const filteredSubtopics = computed(() => {
   return subtopics.value.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(searchQuery.value.toLowerCase())
     const matchesStatus = statusFilter.value === null || s.is_active === statusFilter.value
-    const matchesLanguage = (s.language || 'en') === languageFilter.value
-    return matchesSearch && matchesStatus && matchesLanguage
+    return matchesSearch && matchesStatus
   })
 })
 
