@@ -40,7 +40,14 @@
               </template>
             </VaInput>
 
-            <VaSelect v-model="statusFilter" placeholder="Status" :options="statusOptions" clearable />
+            <VaSelect
+              v-model="statusFilter"
+              placeholder="Status"
+              :options="statusOptions"
+              text-by="text"
+              value-by="value"
+              clearable
+            />
 
             <VaButton icon="refresh" preset="secondary" @click="loadData" />
           </div>
@@ -58,14 +65,19 @@
       <p>Loading topics...</p>
     </div>
 
-    <div v-else-if="topics.length === 0" class="empty-state">
+    <div v-else-if="filteredTopics.length === 0" class="empty-state">
       <VaIcon name="inbox" size="4rem" color="secondary" />
       <p class="empty-message">No topics found</p>
       <VaButton @click="openCreateModal">Create First Topic</VaButton>
     </div>
 
     <div v-else class="topics-grid">
-      <VaCard v-for="topic in topics" :key="topic.id" class="topic-card" :class="{ inactive: !topic.is_active }">
+      <VaCard
+        v-for="topic in filteredTopics"
+        :key="topic.id"
+        class="topic-card"
+        :class="{ inactive: !topic.is_active }"
+      >
         <!-- Language panel split -->
         <div class="topic-lang-panels">
           <!-- Swahili panel -->
@@ -173,6 +185,20 @@ const statusOptions = [
   { text: 'Inactive', value: false },
 ]
 
+const filteredTopics = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  return topics.value.filter((t) => {
+    const matchesSearch =
+      !q ||
+      t.name?.toLowerCase().includes(q) ||
+      t.name_sw?.toLowerCase().includes(q) ||
+      t.description?.toLowerCase().includes(q) ||
+      t.description_sw?.toLowerCase().includes(q)
+    const matchesStatus = statusFilter.value === null || t.is_active === statusFilter.value
+    return matchesSearch && matchesStatus
+  })
+})
+
 // Modal
 const showModal = ref(false)
 const isEditing = ref(false)
@@ -204,6 +230,7 @@ const loadData = async () => {
 const openCreateModal = () => {
   isEditing.value = false
   editingId.value = null
+  const maxOrder = topics.value.reduce((max, t) => Math.max(max, t.display_order ?? 0), -1)
   form.value = {
     name: '',
     name_sw: '',
@@ -211,7 +238,7 @@ const openCreateModal = () => {
     description: '',
     description_sw: '',
     icon: '📚',
-    display_order: topics.value.length,
+    display_order: maxOrder + 1,
     is_active: true,
   }
   showModal.value = true

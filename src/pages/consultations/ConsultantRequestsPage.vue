@@ -69,6 +69,8 @@
             v-model="filters.status"
             label="Status"
             :options="statusOptions"
+            text-by="text"
+            value-by="value"
             class="filter-item"
             clearable
             @update:modelValue="applyFilters"
@@ -78,6 +80,8 @@
             v-model="filters.consultant_type"
             label="Consultant Type"
             :options="consultantTypeOptions"
+            text-by="text"
+            value-by="value"
             class="filter-item"
             clearable
             @update:modelValue="applyFilters"
@@ -87,6 +91,8 @@
             v-model="filters.ordering"
             label="Sort By"
             :options="orderingOptions"
+            text-by="text"
+            value-by="value"
             class="filter-item"
             @update:modelValue="applyFilters"
           />
@@ -226,7 +232,7 @@ const selectedRequest = ref<ConsultantRequest | null>(null)
 const filters = ref({
   search: '',
   status: undefined as 'pending' | 'approved' | 'rejected' | undefined,
-  consultant_type: undefined as 'advocate' | 'lawyer' | 'paralegal' | undefined,
+  consultant_type: undefined as 'advocate' | 'lawyer' | 'paralegal' | 'law_firm' | undefined,
   ordering: '-created_at',
 })
 
@@ -279,6 +285,14 @@ const refreshData = () => {
 }
 
 const applyFilters = () => {
+  // Normalize VaSelect values in case an option object slipped through
+  const status = filters.value.status as any
+  if (status && typeof status === 'object') filters.value.status = status.value
+  const ctype = filters.value.consultant_type as any
+  if (ctype && typeof ctype === 'object') filters.value.consultant_type = ctype.value
+  const ordering = filters.value.ordering as any
+  if (ordering && typeof ordering === 'object') filters.value.ordering = ordering.value
+
   store.setRequestsPage(1)
   fetchData()
 }

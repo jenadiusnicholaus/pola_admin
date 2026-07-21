@@ -78,7 +78,12 @@ const getRoleBadgeColor = (user: AdminUser) => {
 const getRoleDisplay = (user: AdminUser) => {
   if (user.is_superuser) return 'Superuser'
   if (user.is_staff) return 'Staff'
-  return user.user_role?.get_role_display || 'No Role'
+  // API UserRoleSerializer exposes display_name / name_en (not get_role_display)
+  const role = user.user_role as AdminUser['user_role'] & {
+    display_name?: string
+    name_en?: string
+  }
+  return role?.get_role_display || role?.display_name || role?.name_en || role?.role_name || 'No Role'
 }
 
 const onDeleteUser = async (user: AdminUser) => {

@@ -164,25 +164,29 @@ export interface UpdateConsultantData {
 // ==================== API Endpoints ====================
 
 const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL
-const getEndpoint = (key: string) => import.meta.env[key] || ''
+const getEndpoint = (key: string, fallback: string) => import.meta.env[key] || fallback
 
 const ENDPOINTS = {
   requests: {
-    list: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS')}`,
-    detail: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS')}${id}/`,
-    pending: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS_PENDING')}`,
-    statistics: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS_STATISTICS')}`,
+    list: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS', '/admin/consultant-requests/')}`,
+    detail: (id: number) =>
+      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS', '/admin/consultant-requests/')}${id}/`,
+    pending: () =>
+      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS_PENDING', '/admin/consultant-requests/pending/')}`,
+    statistics: () =>
+      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS_STATISTICS', '/admin/consultant-requests/statistics/')}`,
     approve: (id: number) =>
-      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS_APPROVE').replace('{id}', String(id))}`,
+      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS_APPROVE', '/admin/consultant-requests/{id}/approve/').replace('{id}', String(id))}`,
     reject: (id: number) =>
-      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS_REJECT').replace('{id}', String(id))}`,
+      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANT_REQUESTS_REJECT', '/admin/consultant-requests/{id}/reject/').replace('{id}', String(id))}`,
   },
   consultants: {
-    list: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANTS')}`,
-    detail: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANTS')}${id}/`,
-    statistics: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANTS_STATISTICS')}`,
+    list: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANTS', '/admin/consultants/')}`,
+    detail: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANTS', '/admin/consultants/')}${id}/`,
+    statistics: () =>
+      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANTS_STATISTICS', '/admin/consultants/statistics/')}`,
     toggleAvailability: (id: number) =>
-      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANTS_TOGGLE').replace('{id}', String(id))}`,
+      `${getBaseUrl()}${getEndpoint('VITE_ADMIN_CONSULTANTS_TOGGLE', '/admin/consultants/{id}/toggle_availability/').replace('{id}', String(id))}`,
   },
 }
 

@@ -123,6 +123,56 @@ export interface BulkToggleData {
   is_active: boolean
 }
 
+/** Backend StandardResultsSetPagination max; we page until `next` is null. */
+const ADMIN_LIST_PAGE_SIZE = 100
+
+/**
+ * Fetch every page of a DRF paginated list endpoint.
+ * Admin topic/subtopic UIs need the full set (default API page size is 20).
+ */
+async function fetchAllPaginatedResults<T>(
+  listUrl: string,
+  filters: Record<string, string | number | boolean | undefined | null> = {},
+): Promise<T[]> {
+  const all: T[] = []
+  let page = 1
+
+  for (;;) {
+    const queryParams = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value))
+      }
+    })
+    queryParams.set('page', String(page))
+    queryParams.set('page_size', String(ADMIN_LIST_PAGE_SIZE))
+
+    const response = await makeRequest({
+      url: `${listUrl}?${queryParams.toString()}`,
+      method: 'GET',
+    })
+    const data = response.data
+
+    if (Array.isArray(data)) {
+      return data as T[]
+    }
+
+    if (data && typeof data === 'object' && Array.isArray(data.results)) {
+      all.push(...(data.results as T[]))
+      if (!data.next || data.results.length === 0) {
+        break
+      }
+      page += 1
+      continue
+    }
+
+    console.warn('⚠️ [hubsService] Unexpected paginated response format:', data)
+    break
+  }
+
+  return all
+}
+
 export const hubsService = {
   // ==================== Topics Management ====================
 
@@ -131,51 +181,7 @@ export const hubsService = {
    * Endpoint: GET /api/v1/admin/hubs/topics/
    */
   getTopics: async (filters: TopicFilters = {}): Promise<Topic[]> => {
-    console.log('🌐 [hubsService] getTopics called with filters:', filters)
-
-    const queryParams = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        queryParams.append(key, String(value))
-      }
-    })
-
-    const url = queryParams.toString()
-      ? `${API_ENDPOINTS.hubs.topics.list()}?${queryParams.toString()}`
-      : API_ENDPOINTS.hubs.topics.list()
-
-    console.log('🌐 [hubsService] Full URL:', url)
-
-    const params: IRequestParams = {
-      url,
-      method: 'GET',
-    }
-
-    console.log('🌐 [hubsService] Making request...')
-    const response = await makeRequest(params)
-    console.log('🌐 [hubsService] Response received:', response)
-    console.log('🌐 [hubsService] Response data:', response.data)
-    console.log('🌐 [hubsService] Response data type:', typeof response.data)
-    console.log('🌐 [hubsService] Response data is Array?', Array.isArray(response.data))
-
-    // Handle Django REST Framework paginated response
-    if (response.data && typeof response.data === 'object' && 'results' in response.data) {
-      console.log('🌐 [hubsService] Detected paginated response')
-      console.log('🌐 [hubsService] results:', response.data.results)
-      console.log('🌐 [hubsService] results.length:', response.data.results?.length || 0)
-      return response.data.results as Topic[]
-    }
-
-    // Handle direct array response
-    if (Array.isArray(response.data)) {
-      console.log('🌐 [hubsService] Detected direct array response')
-      console.log('🌐 [hubsService] array.length:', response.data.length)
-      return response.data
-    }
-
-    // Fallback: return empty array if format is unexpected
-    console.warn('⚠️ [hubsService] Unexpected response format from getTopics:', response.data)
-    return []
+    return fetchAllPaginatedResults<Topic>(API_ENDPOINTS.hubs.topics.list(), filters)
   },
 
   /**
@@ -328,36 +334,7 @@ export const hubsService = {
    * Endpoint: GET /api/v1/admin/hubs/subtopics/
    */
   getSubtopics: async (filters: SubtopicFilters = {}): Promise<Subtopic[]> => {
-    const queryParams = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        queryParams.append(key, String(value))
-      }
-    })
-
-    const url = queryParams.toString()
-      ? `${API_ENDPOINTS.hubs.subtopics.list()}?${queryParams.toString()}`
-      : API_ENDPOINTS.hubs.subtopics.list()
-
-    const params: IRequestParams = {
-      url,
-      method: 'GET',
-    }
-    const response = await makeRequest(params)
-
-    // Handle Django REST Framework paginated response
-    if (response.data && typeof response.data === 'object' && 'results' in response.data) {
-      return response.data.results as Subtopic[]
-    }
-
-    // Handle direct array response
-    if (Array.isArray(response.data)) {
-      return response.data
-    }
-
-    // Fallback: return empty array if format is unexpected
-    console.warn('⚠️ [hubsService] Unexpected response format from getSubtopics:', response.data)
-    return []
+    return fetchAllPaginatedResults<Subtopic>(API_ENDPOINTS.hubs.subtopics.list(), filters)
   },
 
   /**

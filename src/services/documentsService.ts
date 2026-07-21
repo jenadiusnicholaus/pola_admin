@@ -145,8 +145,11 @@ export const documentsService = {
    * Approve learning material
    */
   approveMaterial: async (id: number, data: ApproveRejectData = {}): Promise<LearningMaterial> => {
-    const response = await subscriptionApiClient.post(buildUrl(`/admin/documents/materials/${id}/approve/`), data)
-    return response.data
+    const response = await subscriptionApiClient.post(buildUrl(`/admin/documents/materials/${id}/approve/`), {
+      is_approved: true,
+      ...data,
+    })
+    return response.data.material || response.data
   },
 
   /**
@@ -154,7 +157,7 @@ export const documentsService = {
    */
   rejectMaterial: async (id: number, data: ApproveRejectData): Promise<LearningMaterial> => {
     const response = await subscriptionApiClient.post(buildUrl(`/admin/documents/materials/${id}/reject/`), data)
-    return response.data
+    return response.data.material || response.data
   },
 
   /**
