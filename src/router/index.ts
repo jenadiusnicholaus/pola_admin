@@ -216,6 +216,7 @@ const routes: Array<RouteRecordRaw> = [
         component: RouteViewComponent,
         children: [
           {
+            name: 'disbursements-index',
             path: '',
             redirect: { name: 'disbursements-list' },
           },

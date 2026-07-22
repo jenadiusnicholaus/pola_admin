@@ -20,6 +20,8 @@
                 v-model="filters.hubType"
                 label="Hub Type"
                 :options="hubTypeOptions"
+                text-by="text"
+                value-by="value"
                 placeholder="All Hubs"
                 clearable
                 @update:modelValue="applyFilters"
@@ -31,6 +33,8 @@
                 v-model="filters.contentType"
                 label="Content Type"
                 :options="contentTypeOptions"
+                text-by="text"
+                value-by="value"
                 placeholder="All Types"
                 clearable
                 @update:modelValue="applyFilters"
@@ -42,6 +46,8 @@
                 v-model="filters.uploaderType"
                 label="Uploader Type"
                 :options="uploaderTypeOptions"
+                text-by="text"
+                value-by="value"
                 placeholder="All Uploaders"
                 clearable
                 @update:modelValue="applyFilters"
@@ -53,6 +59,8 @@
                 v-model="filters.isActive"
                 label="Status"
                 :options="statusOptions"
+                text-by="text"
+                value-by="value"
                 placeholder="All Status"
                 clearable
                 @update:modelValue="applyFilters"
@@ -78,6 +86,8 @@
                 v-model="statisticsDays"
                 label="Statistics Period"
                 :options="timeRangeOptions"
+                text-by="text"
+                value-by="value"
                 @update:modelValue="fetchStatistics"
               />
             </div>
@@ -177,6 +187,7 @@
             :items="hubsStore.hubContent"
             :columns="columns"
             :loading="hubsStore.loadingHubContent"
+            item-key="id"
             selectable
             select-mode="multiple"
             sticky-header
@@ -882,8 +893,13 @@ const columns = [
   { key: 'actions', label: 'Actions', sortable: false },
 ]
 
-// Selection
-const selectedContentIds = ref<number[]>([])
+// Selection (VaDataTable may emit row objects or ids depending on version)
+const selectedContentIds = ref<any[]>([])
+
+const selectedIds = (): number[] =>
+  selectedContentIds.value
+    .map((item) => (typeof item === 'object' && item !== null ? item.id : item))
+    .filter((id): id is number => typeof id === 'number')
 
 // Pagination
 const pagination = ref({
@@ -1090,9 +1106,10 @@ const cancelDelete = () => {
 // Bulk actions
 const bulkActivate = async () => {
   try {
-    await hubsStore.bulkToggleContent(selectedContentIds.value, true)
+    const ids = selectedIds()
+    await hubsStore.bulkToggleContent(ids, true)
     notify({
-      message: `${selectedContentIds.value.length} items activated successfully`,
+      message: `${ids.length} items activated successfully`,
       color: 'success',
     })
     selectedContentIds.value = []
@@ -1106,9 +1123,10 @@ const bulkActivate = async () => {
 
 const bulkDeactivate = async () => {
   try {
-    await hubsStore.bulkToggleContent(selectedContentIds.value, false)
+    const ids = selectedIds()
+    await hubsStore.bulkToggleContent(ids, false)
     notify({
-      message: `${selectedContentIds.value.length} items deactivated successfully`,
+      message: `${ids.length} items deactivated successfully`,
       color: 'success',
     })
     selectedContentIds.value = []
@@ -1122,9 +1140,10 @@ const bulkDeactivate = async () => {
 
 const bulkPin = async () => {
   try {
-    await hubsStore.bulkPinContent(selectedContentIds.value, true)
+    const ids = selectedIds()
+    await hubsStore.bulkPinContent(ids, true)
     notify({
-      message: `${selectedContentIds.value.length} items pinned successfully`,
+      message: `${ids.length} items pinned successfully`,
       color: 'success',
     })
     selectedContentIds.value = []
@@ -1138,9 +1157,10 @@ const bulkPin = async () => {
 
 const bulkUnpin = async () => {
   try {
-    await hubsStore.bulkPinContent(selectedContentIds.value, false)
+    const ids = selectedIds()
+    await hubsStore.bulkPinContent(ids, false)
     notify({
-      message: `${selectedContentIds.value.length} items unpinned successfully`,
+      message: `${ids.length} items unpinned successfully`,
       color: 'success',
     })
     selectedContentIds.value = []
@@ -1158,9 +1178,10 @@ const confirmBulkDelete = () => {
 
 const executeBulkDelete = async () => {
   try {
-    await hubsStore.bulkDeleteContent(selectedContentIds.value)
+    const ids = selectedIds()
+    await hubsStore.bulkDeleteContent(ids)
     notify({
-      message: `${selectedContentIds.value.length} items deleted successfully`,
+      message: `${ids.length} items deleted successfully`,
       color: 'success',
     })
     selectedContentIds.value = []

@@ -66,24 +66,23 @@ export interface PaginatedResponse<T> {
 
 const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
-const getEndpoint = (key: string) => {
-  const endpoint = import.meta.env[key]
-  if (!endpoint) {
-    console.error(`Environment variable ${key} is not defined`)
-    return ''
-  }
-  return endpoint
-}
+const getEndpoint = (key: string, fallback: string) => import.meta.env[key] || fallback
 
 const endpoints = {
-  list: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_LIST')}`,
-  detail: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_DETAIL').replace('{id}', String(id))}`,
-  answer: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_ANSWER').replace('{id}', String(id))}`,
-  close: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_CLOSE').replace('{id}', String(id))}`,
-  reopen: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_REOPEN').replace('{id}', String(id))}`,
-  stats: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_STATS')}`,
-  update: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_UPDATE').replace('{id}', String(id))}`,
-  delete: (id: number) => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_DELETE').replace('{id}', String(id))}`,
+  list: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_LIST', '/admin/hubs/questions/')}`,
+  detail: (id: number) =>
+    `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_DETAIL', '/admin/hubs/questions/{id}/').replace('{id}', String(id))}`,
+  answer: (id: number) =>
+    `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_ANSWER', '/admin/hubs/questions/{id}/answer/').replace('{id}', String(id))}`,
+  close: (id: number) =>
+    `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_CLOSE', '/admin/hubs/questions/{id}/close/').replace('{id}', String(id))}`,
+  reopen: (id: number) =>
+    `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_REOPEN', '/admin/hubs/questions/{id}/reopen/').replace('{id}', String(id))}`,
+  stats: () => `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_STATS', '/admin/hubs/questions/stats/')}`,
+  update: (id: number) =>
+    `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_UPDATE', '/admin/hubs/questions/{id}/').replace('{id}', String(id))}`,
+  delete: (id: number) =>
+    `${getBaseUrl()}${getEndpoint('VITE_ADMIN_QUESTIONS_DELETE', '/admin/hubs/questions/{id}/').replace('{id}', String(id))}`,
 }
 
 // ==================== Service Methods ====================
