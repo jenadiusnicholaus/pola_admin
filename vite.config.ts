@@ -10,6 +10,14 @@ export default defineConfig({
   build: {
     sourcemap: true,
   },
+  server: {
+    watch: {
+      // Avoid EMFILE when the OS inotify limit is saturated (IDE + Chrome + Vite).
+      usePolling: true,
+      interval: 1000,
+      ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/e2e/**'],
+    },
+  },
   plugins: [
     vuestic(),
     vue(),

@@ -130,16 +130,14 @@ const ADMIN_LIST_PAGE_SIZE = 100
  * Fetch every page of a DRF paginated list endpoint.
  * Admin topic/subtopic UIs need the full set (default API page size is 20).
  */
-async function fetchAllPaginatedResults<T>(
-  listUrl: string,
-  filters: Record<string, string | number | boolean | undefined | null> = {},
-): Promise<T[]> {
+async function fetchAllPaginatedResults<T>(listUrl: string, filters: object = {}): Promise<T[]> {
   const all: T[] = []
   let page = 1
+  const filterEntries = Object.entries(filters as Record<string, string | number | boolean | undefined | null>)
 
   for (;;) {
     const queryParams = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
+    filterEntries.forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         queryParams.append(key, String(value))
       }
