@@ -22,7 +22,10 @@ export interface LearningMaterial {
   uploader_type_display: string
   category: string
   category_display: string
+  content_type?: string
+  content_type_display?: string
   file: string
+  file_url?: string
   file_size: number
   file_size_mb: number
   price: string

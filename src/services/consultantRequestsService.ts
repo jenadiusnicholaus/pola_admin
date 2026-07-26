@@ -36,7 +36,7 @@ export interface ConsultantRequest {
   id: number
   user: number
   user_details: UserDetails
-  consultant_type: 'advocate' | 'lawyer' | 'paralegal'
+  consultant_type: 'advocate' | 'lawyer' | 'paralegal' | 'law_firm'
   consultant_type_display: string
   license_document: string | null
   id_document: string | null
@@ -59,7 +59,7 @@ export interface ConsultantRequest {
 export interface ConsultantProfile {
   id: number
   user: UserDetails
-  consultant_type: 'advocate' | 'lawyer' | 'paralegal'
+  consultant_type: 'advocate' | 'lawyer' | 'paralegal' | 'law_firm'
   availability_status: 'available' | 'busy' | 'offline'
   offers_mobile_consultation: boolean
   offers_physical_consultation: boolean
@@ -126,7 +126,7 @@ export interface ConsultantStatistics {
 
 export interface RequestFilters {
   status?: 'pending' | 'approved' | 'rejected'
-  consultant_type?: 'advocate' | 'lawyer' | 'paralegal'
+  consultant_type?: 'advocate' | 'lawyer' | 'paralegal' | 'law_firm'
   date_from?: string
   date_to?: string
   search?: string
@@ -136,7 +136,7 @@ export interface RequestFilters {
 }
 
 export interface ConsultantFilters {
-  consultant_type?: 'advocate' | 'lawyer' | 'paralegal'
+  consultant_type?: 'advocate' | 'lawyer' | 'paralegal' | 'law_firm'
   availability_status?: 'available' | 'busy' | 'offline'
   search?: string
   ordering?: string
