@@ -49,6 +49,7 @@ axios.interceptors.request.use(
       '/authentication/resend-otp/',
       '/authentication/reactivate-account/',
       '/authentication/reset-password/',
+      '/authentication/verify-reset-otp/',
       '/authentication/confirm-reset-password/',
       '/authentication/admin-login/',
       '/doc-templates/document-content/',

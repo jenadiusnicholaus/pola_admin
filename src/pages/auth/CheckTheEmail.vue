@@ -1,68 +1,121 @@
 <template>
   <div class="check-email-container">
-    <div class="check-email-card">
-      <!-- Success Icon -->
+    <VaForm ref="confirmForm" class="check-email-card" @submit.prevent="submit">
       <div class="icon-wrapper">
         <VaIcon name="mark_email_read" size="4rem" color="success" />
       </div>
 
-      <!-- Header -->
       <div class="card-header">
-        <h1 class="card-title">Check Your Email</h1>
-        <p class="card-subtitle">We've sent password reset instructions to your email address.</p>
+        <h1 class="card-title">Enter Reset Code</h1>
+        <p class="card-subtitle">
+          We sent a 6-digit code to <strong>{{ email || 'your email' }}</strong
+          >.
+        </p>
       </div>
 
-      <!-- Instructions -->
-      <div class="instructions">
-        <div class="instruction-item">
-          <VaIcon name="check_circle" color="success" size="1.25rem" />
-          <span>Check your inbox for the reset link</span>
-        </div>
-        <div class="instruction-item">
-          <VaIcon name="schedule" color="primary" size="1.25rem" />
-          <span>The link will expire in 24 hours</span>
-        </div>
-        <div class="instruction-item">
-          <VaIcon name="folder_special" color="warning" size="1.25rem" />
-          <span>Don't forget to check your spam folder</span>
-        </div>
+      <div class="form-fields">
+        <VaInput
+          v-model="otp"
+          label="6-digit OTP"
+          placeholder="Enter code"
+          :rules="[(v) => !!v || 'OTP is required', (v) => /^\d{6}$/.test(v) || 'Enter a 6-digit code']"
+          :disabled="loading"
+        />
+        <VaInput
+          v-model="newPassword"
+          type="password"
+          label="New Password"
+          :rules="[(v) => !!v || 'Password is required', (v) => v.length >= 8 || 'At least 8 characters']"
+          :disabled="loading"
+        />
+        <VaInput
+          v-model="confirmPassword"
+          type="password"
+          label="Confirm Password"
+          :rules="[(v) => !!v || 'Confirm your password', (v) => v === newPassword || 'Passwords do not match']"
+          :disabled="loading"
+        />
       </div>
 
-      <!-- Actions -->
       <div class="actions">
+        <VaButton type="submit" class="w-full" size="large" :loading="loading" :disabled="loading">
+          Reset Password
+        </VaButton>
         <RouterLink :to="{ name: 'login' }" class="action-link">
-          <VaButton class="w-full" size="large">
-            <VaIcon name="arrow_back" class="mr-2" />
-            Back to Login
-          </VaButton>
+          <VaButton preset="secondary" class="w-full" size="large">Back to Login</VaButton>
         </RouterLink>
       </div>
 
-      <!-- Help Section -->
       <div class="help-section">
         <p class="help-text">
-          Didn't receive the email?
-          <a href="#" class="help-link" @click.prevent="resendEmail">Resend email</a>
-        </p>
-        <p class="help-text">
-          Need assistance?
-          <a href="#" class="help-link">Contact support</a>
+          Didn't receive the code?
+          <a href="#" class="help-link" @click.prevent="resendEmail">Resend code</a>
         </p>
       </div>
-    </div>
+    </VaForm>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { useToast } from 'vuestic-ui'
+import { onMounted, ref } from 'vue'
+import { useForm, useToast } from 'vuestic-ui'
+import { useRouter } from 'vue-router'
+import { passwordResetService } from '../../services/passwordResetService'
 
+const email = ref('')
+const otp = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const loading = ref(false)
+const form = useForm('confirmForm')
+const router = useRouter()
 const { init } = useToast()
 
-const resendEmail = () => {
-  init({
-    message: 'Reset link has been resent to your email',
-    color: 'success',
-  })
+onMounted(() => {
+  email.value = sessionStorage.getItem('pola_reset_email') || ''
+  sessionStorage.removeItem('pola_reset_debug_otp')
+  if (!email.value) {
+    init({ message: 'Start from the forgot password page.', color: 'warning' })
+    router.replace({ name: 'recover-password' })
+  }
+})
+
+const submit = async () => {
+  if (!form.validate() || !email.value) return
+  loading.value = true
+  try {
+    const result = await passwordResetService.confirmReset({
+      email: email.value,
+      otp: otp.value,
+      new_password: newPassword.value,
+      new_password_confirm: confirmPassword.value,
+    })
+    sessionStorage.removeItem('pola_reset_email')
+    sessionStorage.removeItem('pola_reset_debug_otp')
+    init({ message: result.message || 'Password reset successful.', color: 'success' })
+    router.push({ name: 'login' })
+  } catch (error: any) {
+    const data = error?.response?.data
+    let message = 'Failed to reset password.'
+    if (typeof data?.detail === 'string') message = data.detail
+    else if (data?.new_password_confirm?.[0]) message = data.new_password_confirm[0]
+    else if (data?.otp?.[0]) message = data.otp[0]
+    init({ message, color: 'danger' })
+  } finally {
+    loading.value = false
+  }
+}
+
+const resendEmail = async () => {
+  if (!email.value) return
+  try {
+    await passwordResetService.requestReset(email.value)
+    otp.value = ''
+    sessionStorage.removeItem('pola_reset_debug_otp')
+    init({ message: 'Reset code has been resent.', color: 'success' })
+  } catch {
+    init({ message: 'Could not resend code. Try again shortly.', color: 'danger' })
+  }
 }
 </script>
 
@@ -93,48 +146,32 @@ const resendEmail = () => {
 }
 
 .card-header {
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
 }
 
 .card-title {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--va-text-primary);
-  margin: 0 0 0.75rem 0;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin: 0 0 0.75rem;
 }
 
 .card-subtitle {
-  font-size: 1rem;
   color: var(--va-text-secondary);
   margin: 0;
-  line-height: 1.6;
 }
 
-.instructions {
+.form-fields {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 2.5rem;
   text-align: left;
-  padding: 1.5rem;
-  background: var(--va-background-secondary);
-  border-radius: 12px;
-}
-
-.instruction-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-size: 0.9375rem;
-  color: var(--va-text-primary);
+  margin-bottom: 1.5rem;
 }
 
 .actions {
-  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .action-link {
@@ -142,45 +179,17 @@ const resendEmail = () => {
 }
 
 .help-section {
-  padding-top: 2rem;
-  border-top: 1px solid var(--va-background-border);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  margin-top: 1.5rem;
 }
 
 .help-text {
-  font-size: 0.875rem;
   color: var(--va-text-secondary);
-  margin: 0;
+  font-size: 0.9rem;
 }
 
 .help-link {
   color: var(--va-primary);
   font-weight: 600;
   text-decoration: none;
-}
-
-.help-link:hover {
-  text-decoration: underline;
-}
-
-@media (max-width: 768px) {
-  .check-email-card {
-    padding: 2rem 1.5rem;
-  }
-
-  .card-title {
-    font-size: 1.75rem;
-  }
-
-  .icon-wrapper {
-    width: 80px;
-    height: 80px;
-  }
-
-  .instructions {
-    padding: 1rem;
-  }
 }
 </style>
