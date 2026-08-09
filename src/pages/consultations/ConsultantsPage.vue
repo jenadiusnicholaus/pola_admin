@@ -16,7 +16,12 @@ onMounted(() => {
 })
 
 const handleSearch = () => {
-  // Only pass defined filters
+  // Normalize VaSelect option objects if they slip through
+  const typeVal = filters.value.consultant_type as any
+  if (typeVal && typeof typeVal === 'object') filters.value.consultant_type = typeVal.value ?? ''
+  const availVal = filters.value.is_available as any
+  if (availVal && typeof availVal === 'object') filters.value.is_available = availVal.value
+
   const activeFilters: any = {}
   if (filters.value.specialization) activeFilters.specialization = filters.value.specialization
   if (filters.value.is_available !== undefined) activeFilters.is_available = filters.value.is_available
@@ -86,6 +91,8 @@ const formatCurrency = (amount: string) => {
               { text: 'Lawyer', value: 'lawyer' },
               { text: 'Paralegal', value: 'paralegal' },
             ]"
+            text-by="text"
+            value-by="value"
             clearable
           />
 
@@ -103,6 +110,8 @@ const formatCurrency = (amount: string) => {
               { text: 'Available', value: true },
               { text: 'Unavailable', value: false },
             ]"
+            text-by="text"
+            value-by="value"
             clearable
           />
 

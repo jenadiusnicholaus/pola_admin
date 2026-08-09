@@ -19,13 +19,26 @@ onMounted(() => {
 })
 
 const handleSearch = () => {
-  fetchMaterials(filters.value)
+  fetchMaterials({
+    status: filters.value.status || undefined,
+    category: filters.value.category || undefined,
+    email: filters.value.email || undefined,
+  })
+}
+
+const handleClear = () => {
+  filters.value = { status: '', category: '', email: '' }
+  fetchMaterials()
 }
 
 const handleApprove = async (id: number) => {
   if (confirm('Approve this material?')) {
     await approveMaterial(id, { admin_note: 'Approved' })
-    await fetchMaterials()
+    await fetchMaterials({
+      status: filters.value.status || undefined,
+      category: filters.value.category || undefined,
+      email: filters.value.email || undefined,
+    })
   }
 }
 
@@ -37,10 +50,15 @@ const openRejectModal = (id: number) => {
 
 const handleReject = async () => {
   if (!selectedMaterialId.value) return
+  if (!rejectNote.value.trim()) return
 
   await rejectMaterial(selectedMaterialId.value, { admin_note: rejectNote.value })
   showRejectModal.value = false
-  await fetchMaterials()
+  await fetchMaterials({
+    status: filters.value.status || undefined,
+    category: filters.value.category || undefined,
+    email: filters.value.email || undefined,
+  })
 }
 
 const columns = [
@@ -64,8 +82,7 @@ const getStatusColor = (isApproved: boolean | null) => {
 
 const getStatusText = (isApproved: boolean | null) => {
   if (isApproved === true) return 'Approved'
-  if (isApproved === false) return 'Rejected'
-  return 'Pending'
+  return 'Rejected'
 }
 
 const formatDate = (dateString: string) => {
@@ -109,19 +126,34 @@ const getUploaderName = (uploader: any) => {
           <VaSelect
             v-model="filters.status"
             placeholder="All Statuses"
-            :options="['', 'pending', 'approved', 'rejected']"
+            :options="[
+              { text: 'All Statuses', value: '' },
+              { text: 'Pending', value: 'pending' },
+              { text: 'Approved', value: 'approved' },
+              { text: 'Rejected', value: 'rejected' },
+            ]"
+            text-by="text"
+            value-by="value"
             clearable
           />
 
           <VaSelect
             v-model="filters.category"
             placeholder="All Categories"
-            :options="['', 'notes', 'past_papers', 'textbooks', 'guides']"
+            :options="[
+              { text: 'All Categories', value: '' },
+              { text: 'Notes', value: 'notes' },
+              { text: 'Past Papers', value: 'past_papers' },
+              { text: 'Document', value: 'document' },
+              { text: 'Tutorial', value: 'tutorial' },
+            ]"
+            text-by="text"
+            value-by="value"
             clearable
           />
 
           <VaButton @click="handleSearch">Search</VaButton>
-          <VaButton preset="secondary" @click="filters = { status: '', category: '', email: '' }">Clear</VaButton>
+          <VaButton preset="secondary" @click="handleClear">Clear</VaButton>
         </div>
       </VaCardContent>
     </VaCard>
@@ -139,12 +171,16 @@ const getUploaderName = (uploader: any) => {
             </div>
           </template>
 
+          <template #cell(category_display)="{ rowData }">
+            <span>{{ rowData.category_display || rowData.content_type_display || rowData.content_type }}</span>
+          </template>
+
           <template #cell(uploader)="{ rowData }">
             <div class="user-cell">
               <VaIcon name="person" size="small" />
               <div>
                 <div>{{ getUploaderName(rowData.uploader) }}</div>
-                <div class="email-text">{{ rowData.uploader.email }}</div>
+                <div class="email-text">{{ rowData.uploader?.email }}</div>
               </div>
             </div>
           </template>
@@ -172,7 +208,7 @@ const getUploaderName = (uploader: any) => {
           <template #cell(actions)="{ rowData }">
             <div class="actions-cell">
               <VaButton
-                v-if="rowData.is_approved === null || rowData.is_approved === false"
+                v-if="!rowData.is_approved"
                 preset="plain"
                 icon="check"
                 color="success"
@@ -182,7 +218,7 @@ const getUploaderName = (uploader: any) => {
                 Approve
               </VaButton>
               <VaButton
-                v-if="rowData.is_approved === null || rowData.is_approved === true"
+                v-if="rowData.is_approved"
                 preset="plain"
                 icon="close"
                 color="danger"
@@ -191,10 +227,18 @@ const getUploaderName = (uploader: any) => {
               >
                 Reject
               </VaButton>
-              <VaButton preset="plain" icon="visibility" size="small" :href="rowData.file" target="_blank">
+              <VaButton
+                preset="plain"
+                icon="visibility"
+                size="small"
+                :href="rowData.file_url || rowData.file"
+                target="_blank"
+              >
                 View
               </VaButton>
-              <VaButton preset="plain" icon="download" size="small" :href="rowData.file" download> Download </VaButton>
+              <VaButton preset="plain" icon="download" size="small" :href="rowData.file_url || rowData.file" download>
+                Download
+              </VaButton>
             </div>
           </template>
         </VaDataTable>

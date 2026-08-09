@@ -2,7 +2,8 @@
 import { onMounted, ref } from 'vue'
 import { useCallCredits } from '../../composables'
 
-const { userCredits, isLoading, totalCount, fetchUserCredits, extendUserCredit, grantCredits } = useCallCredits()
+const { userCredits, isLoading, totalCount, fetchUserCredits, extendUserCredit, grantCredits, deleteUserCredit } =
+  useCallCredits()
 
 const filters = ref<{
   status: 'active' | 'expired' | 'depleted' | ''
@@ -84,12 +85,25 @@ const openExtendModal = (credit: any) => {
 const handleExtendCredit = async () => {
   try {
     if (selectedCreditId.value) {
-      await extendUserCredit(selectedCreditId.value, extendForm.value.days)
+      await extendUserCredit(selectedCreditId.value, Number(extendForm.value.days), extendForm.value.reason)
     }
     showExtendModal.value = false
     await fetchUserCredits()
   } catch (error) {
     console.error('Failed to extend credit:', error)
+  }
+}
+
+const handleDeleteCredit = async (credit: any) => {
+  const label = credit.user_details?.email || `#${credit.id}`
+  if (!confirm(`Delete call credit for ${label}? This cannot be undone.`)) {
+    return
+  }
+  try {
+    await deleteUserCredit(credit.id)
+    await fetchUserCredits()
+  } catch (error) {
+    console.error('Failed to delete credit:', error)
   }
 }
 
@@ -238,6 +252,16 @@ const formatDate = (dateString: string) => {
                 @click="openExtendModal(rowData)"
               >
                 Extend
+              </VaButton>
+              <VaButton
+                preset="plain"
+                icon="delete"
+                size="small"
+                color="danger"
+                title="Delete credit"
+                @click="handleDeleteCredit(rowData)"
+              >
+                Delete
               </VaButton>
             </div>
           </template>

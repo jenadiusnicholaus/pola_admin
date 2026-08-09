@@ -64,7 +64,14 @@
               </template>
             </VaSelect>
 
-            <VaSelect v-model="statusFilter" placeholder="Status" :options="statusOptions" clearable />
+            <VaSelect
+              v-model="statusFilter"
+              placeholder="Status"
+              :options="statusOptions"
+              text-by="text"
+              value-by="value"
+              clearable
+            />
 
             <VaButton icon="refresh" preset="secondary" @click="loadData" />
           </div>
@@ -82,7 +89,7 @@
       <p>Loading subtopics...</p>
     </div>
 
-    <div v-else-if="subtopics.length === 0" class="empty-state">
+    <div v-else-if="filteredSubtopics.length === 0" class="empty-state">
       <VaIcon name="inbox" size="4rem" color="secondary" />
       <p class="empty-message">No subtopics found for this topic</p>
       <VaButton @click="openCreateModal">Create First Subtopic</VaButton>
@@ -272,12 +279,13 @@ const viewMaterials = (subtopic: any) => {
 const openCreateModal = () => {
   isEditing.value = false
   editingId.value = null
+  const maxOrder = subtopics.value.reduce((max, s) => Math.max(max, s.display_order ?? 0), -1)
   form.value = {
     topic: topicId.value,
     name: '',
     description: '',
     language: languageFilter.value || 'en',
-    display_order: subtopics.value.length,
+    display_order: maxOrder + 1,
     is_active: true,
   }
   showModal.value = true

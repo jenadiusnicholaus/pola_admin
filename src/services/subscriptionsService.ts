@@ -135,12 +135,12 @@ export const subscriptionsService = {
   cancel: async (id: number, data: CancelSubscriptionData): Promise<Subscription> => {
     const requestParams: IRequestParams = {
       url: API_ENDPOINTS.subscriptions.users.cancel(id),
-      method: 'POST',
+      method: 'PATCH',
       data,
     }
 
     const response = await makeRequest(requestParams)
-    return response.data
+    return response.data.subscription || response.data
   },
 
   /**
@@ -149,12 +149,12 @@ export const subscriptionsService = {
   extend: async (id: number, data: ExtendSubscriptionData): Promise<Subscription> => {
     const requestParams: IRequestParams = {
       url: API_ENDPOINTS.subscriptions.users.extend(id),
-      method: 'POST',
+      method: 'PATCH',
       data,
     }
 
     const response = await makeRequest(requestParams)
-    return response.data
+    return response.data.subscription || response.data
   },
 
   /**
@@ -167,7 +167,7 @@ export const subscriptionsService = {
     }
 
     const response = await makeRequest(requestParams)
-    return response.data
+    return response.data.subscription || response.data
   },
 
   /**
@@ -181,7 +181,7 @@ export const subscriptionsService = {
     }
 
     const response = await makeRequest(requestParams)
-    return response.data
+    return response.data.subscription || response.data
   },
 
   /**
@@ -195,7 +195,7 @@ export const subscriptionsService = {
     }
 
     const response = await makeRequest(requestParams)
-    return response.data
+    return response.data.subscription || response.data
   },
 }
 

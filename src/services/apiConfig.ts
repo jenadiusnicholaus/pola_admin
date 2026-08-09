@@ -160,7 +160,7 @@ export const API_ENDPOINTS = {
           id: String(id),
         }),
       toggle: (id: number) =>
-        buildUrl(import.meta.env.VITE_SUBSCRIPTIONS_USERS_TOGGLE || '/admin/hubs/subscriptions/{id}/toggle/', {
+        buildUrl(import.meta.env.VITE_SUBSCRIPTIONS_USERS_TOGGLE || '/admin/subscriptions/users/{id}/toggle/', {
           id: String(id),
         }),
       create: () =>
@@ -316,7 +316,15 @@ export const API_ENDPOINTS = {
     // User Credits Management
     users: {
       list: () => buildUrl(import.meta.env.VITE_CALL_CREDITS_USERS || '/admin/call-credits/users/'),
+      detail: (id: number) =>
+        buildUrl(import.meta.env.VITE_CALL_CREDITS_USERS_DETAIL || '/admin/call-credits/users/{id}/', {
+          id: String(id),
+        }),
       grant: () => buildUrl(import.meta.env.VITE_CALL_CREDITS_USERS_GRANT || '/admin/call-credits/users/grant/'),
+      extend: (id: number) =>
+        buildUrl(import.meta.env.VITE_CALL_CREDITS_USERS_EXTEND || '/admin/call-credits/users/{id}/extend/', {
+          id: String(id),
+        }),
       stats: () => buildUrl(import.meta.env.VITE_CALL_CREDITS_USERS_STATS || '/admin/call-credits/users/stats/'),
       usage: () => buildUrl(import.meta.env.VITE_CALL_CREDITS_USERS_USAGE || '/admin/call-credits/users/usage/'),
     },

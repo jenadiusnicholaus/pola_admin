@@ -186,22 +186,23 @@ export function useCallCredits() {
 
   /**
    * Extend user credit expiration
-   * Note: This feature is not yet implemented in the backend
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const extendUserCredit = async (_id: number, _days: number) => {
+  const extendUserCredit = async (id: number, days: number, reason = '') => {
     isLoading.value = true
     error.value = null
     try {
-      // Note: The current service doesn't have an extend method
-      // This would need to be implemented in the backend
+      const updated = await callCreditsService.userCredits.extend(id, { days, reason })
+      const index = userCredits.value.findIndex((c) => c.id === id)
+      if (index !== -1) {
+        userCredits.value[index] = updated
+      }
       notify({
-        message: 'Extend credit feature not yet implemented',
-        color: 'warning',
+        message: `Credit extended by ${days} days`,
+        color: 'success',
       })
-      return null
+      return updated
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to extend credit'
+      error.value = err.response?.data?.detail || err.response?.data?.error || 'Failed to extend credit'
       notify({
         message: error.value || 'Failed to extend credit',
         color: 'danger',
@@ -233,6 +234,33 @@ export function useCallCredits() {
       error.value = err.response?.data?.detail || 'Failed to grant credits'
       notify({
         message: error.value || 'Failed to grant credits',
+        color: 'danger',
+      })
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Delete a user credit assignment
+   */
+  const deleteUserCredit = async (id: number) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      await callCreditsService.userCredits.delete(id)
+      userCredits.value = userCredits.value.filter((c) => c.id !== id)
+      totalCount.value = Math.max(0, totalCount.value - 1)
+      notify({
+        message: 'Call credit deleted successfully',
+        color: 'success',
+      })
+      return true
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to delete credit'
+      notify({
+        message: error.value || 'Failed to delete credit',
         color: 'danger',
       })
       throw err
@@ -281,6 +309,7 @@ export function useCallCredits() {
     fetchUserCredits,
     extendUserCredit,
     grantCredits,
+    deleteUserCredit,
     getUsageReport,
   }
 }

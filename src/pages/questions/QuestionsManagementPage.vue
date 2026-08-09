@@ -70,6 +70,8 @@
             v-model="filters.status"
             label="Status"
             :options="statusOptions"
+            text-by="text"
+            value-by="value"
             class="filter-item"
             clearable
             @update:modelValue="applyFilters"
@@ -81,6 +83,8 @@
             v-model="filters.ordering"
             label="Sort By"
             :options="orderingOptions"
+            text-by="text"
+            value-by="value"
             class="filter-item"
             @update:modelValue="applyFilters"
           />
@@ -155,7 +159,9 @@
                 color="info"
                 aria-label="View details"
                 @click="viewQuestion(rowData)"
-              />
+              >
+                View
+              </VaButton>
               <VaButton
                 v-if="rowData.status === 'open'"
                 size="small"
@@ -164,7 +170,9 @@
                 color="success"
                 aria-label="Answer question"
                 @click="openAnswerEditor(rowData)"
-              />
+              >
+                Answer
+              </VaButton>
               <VaButton
                 v-if="rowData.status === 'open'"
                 size="small"
@@ -174,7 +182,9 @@
                 aria-label="Close question"
                 :loading="loading.action"
                 @click="confirmCloseQuestion(rowData.id)"
-              />
+              >
+                Close
+              </VaButton>
               <VaButton
                 v-if="rowData.status === 'closed'"
                 size="small"
@@ -184,7 +194,9 @@
                 aria-label="Reopen question"
                 :loading="loading.action"
                 @click="handleReopenQuestion(rowData.id)"
-              />
+              >
+                Reopen
+              </VaButton>
             </div>
           </template>
         </VaDataTable>
@@ -277,7 +289,7 @@ const tableColumns = [
   { key: 'status', label: 'Status', sortable: true },
   { key: 'helpful_count', label: 'Helpful', sortable: true },
   { key: 'created_at', label: 'Created', sortable: true },
-  { key: 'actions', label: 'Actions', sortable: false },
+  { key: 'actions', label: 'Actions', sortable: false, width: '280px' },
 ]
 
 // Methods
@@ -562,7 +574,10 @@ onMounted(() => {
 
 .actions-cell {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
+  align-items: center;
+  min-width: 240px;
 }
 
 .pagination-wrapper {

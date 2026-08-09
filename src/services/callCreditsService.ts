@@ -86,6 +86,7 @@ export interface UserCreditFilters {
   status?: 'active' | 'expired' | 'depleted'
   bundle_id?: number
   user_id?: number
+  email?: string
   active_only?: boolean
   page?: number
   page_size?: number
@@ -301,6 +302,7 @@ export const userCreditsService = {
     if (filters.status) queryParams.status = filters.status
     if (filters.bundle_id) queryParams.bundle_id = String(filters.bundle_id)
     if (filters.user_id) queryParams.user_id = String(filters.user_id)
+    if (filters.email) queryParams.email = filters.email
     if (filters.active_only !== undefined) queryParams.active_only = String(filters.active_only)
     if (filters.page) queryParams.page = String(filters.page)
     if (filters.page_size) queryParams.page_size = String(filters.page_size)
@@ -338,6 +340,32 @@ export const userCreditsService = {
 
     const response = await makeRequest(requestParams)
     return response.data
+  },
+
+  /**
+   * Extend user credit expiration
+   */
+  extend: async (id: number, data: { days: number; reason?: string }): Promise<UserCallCredit> => {
+    const requestParams: IRequestParams = {
+      url: API_ENDPOINTS.callCredits.users.extend(id),
+      method: 'PATCH',
+      data,
+    }
+
+    const response = await makeRequest(requestParams)
+    return response.data.credit || response.data
+  },
+
+  /**
+   * Delete a user credit assignment
+   */
+  delete: async (id: number): Promise<void> => {
+    const requestParams: IRequestParams = {
+      url: API_ENDPOINTS.callCredits.users.detail(id),
+      method: 'DELETE',
+    }
+
+    await makeRequest(requestParams)
   },
 
   /**

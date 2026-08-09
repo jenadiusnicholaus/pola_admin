@@ -5,7 +5,10 @@ import API_ENDPOINTS from './apiConfig'
 export interface AdminUserRole {
   id?: number
   role_name: string
-  get_role_display: string
+  get_role_display?: string
+  display_name?: string
+  name_en?: string
+  name_sw?: string
 }
 
 export interface AdminUser {
