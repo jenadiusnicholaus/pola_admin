@@ -550,7 +550,7 @@ const viewFullDetails = (verification?: VerificationUser) => {
   }
 
   showDetails.value = false
-  router.push(`/admin-verification/verifications/${targetVerification.id}`)
+  router.push({ name: 'verification-details', params: { id: targetVerification.id } })
 }
 
 const getProgressColor = (progress: number) => {
