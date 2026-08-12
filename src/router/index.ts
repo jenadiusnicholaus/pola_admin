@@ -211,6 +211,23 @@ const routes: Array<RouteRecordRaw> = [
         ],
       },
       {
+        name: 'statutes',
+        path: 'statutes',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'statutes-categories',
+            path: 'categories',
+            component: () => import('../pages/statutes/CategoriesPage.vue'),
+          },
+          {
+            name: 'statutes-laws',
+            path: 'laws',
+            component: () => import('../pages/statutes/StatutesPage.vue'),
+          },
+        ],
+      },
+      {
         name: 'disbursements',
         path: 'disbursements',
         component: RouteViewComponent,
