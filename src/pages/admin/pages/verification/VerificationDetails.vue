@@ -40,8 +40,10 @@
       </div>
     </div>
 
-    <!-- Loading State with Skeleton -->
+    <!-- Loading State — visible spinner so navigation never feels silent -->
     <div v-if="loading" class="loading-state">
+      <VaProgressCircle indeterminate size="large" />
+      <p class="loading-message">Loading verification details…</p>
       <div class="skeleton-cards">
         <div v-for="i in 3" :key="i" class="skeleton-card">
           <div class="skeleton-header"></div>
@@ -555,6 +557,7 @@ const rejectSelectedDocument = async () => {
 
 const loadVerificationDetails = async () => {
   const verificationId = route.params.id as string
+  loading.value = true
 
   if (!verificationId) {
     console.error('No verification ID provided')
@@ -804,13 +807,25 @@ onMounted(async () => {
 /* Loading States */
 .loading-state {
   width: 100%;
-  padding: 0 2rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-message {
+  margin: 0;
+  color: var(--va-secondary);
+  font-size: 1rem;
 }
 
 .skeleton-cards {
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 2rem;
+  margin-top: 1rem;
 }
 
 .skeleton-card {

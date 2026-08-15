@@ -232,6 +232,23 @@ export default {
       ],
     },
     {
+      name: 'statutes',
+      displayName: 'menu.statutes',
+      meta: {
+        icon: 'gavel',
+      },
+      children: [
+        {
+          name: 'statutes-categories',
+          displayName: 'menu.statutesCategories',
+        },
+        {
+          name: 'statutes-laws',
+          displayName: 'menu.statutesLaws',
+        },
+      ],
+    },
+    {
       name: 'disbursements',
       displayName: 'menu.disbursements',
       meta: {

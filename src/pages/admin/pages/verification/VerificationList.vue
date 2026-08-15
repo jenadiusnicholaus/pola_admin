@@ -28,102 +28,124 @@
       </VaCardContent>
     </VaCard>
 
-    <!-- Loading State -->
-    <div v-if="isLoading || verificationStore.loading.verifications" class="loading-container">
-      <VaProgressCircle indeterminate size="large" />
-      <p>Loading verifications...</p>
-    </div>
-
-    <!-- Data Table -->
-    <VaCard v-else class="verification-table-card">
+    <!-- Data Table (keep visible while loading — avoid silent blank → boom) -->
+    <VaCard class="verification-table-card">
       <VaCardContent>
-        <VaDataTable
-          :items="paginatedData.results"
-          :columns="tableColumns"
-          :loading="isLoading || verificationStore.loading.verifications"
-          :per-page="perPage"
-          striped
-          hoverable
-          class="verification-table"
-        >
-          <!-- User Column -->
-          <template #cell(user_info)="{ rowData }">
-            <div class="user-cell">
-              <VaAvatar size="small" color="primary" class="mr-2">
-                <VaIcon name="person" />
-              </VaAvatar>
-              <div class="user-details">
-                <div class="user-name">{{ rowData.user_name }}</div>
-                <div class="user-email">{{ rowData.user_email }}</div>
-                <div class="user-role">{{ rowData.user_role?.display }}</div>
+        <VaInnerLoading :loading="isLoading || verificationStore.loading.verifications">
+          <VaDataTable
+            :items="paginatedData.results"
+            :columns="tableColumns"
+            :loading="isLoading || verificationStore.loading.verifications"
+            :per-page="perPage"
+            striped
+            hoverable
+            class="verification-table"
+          >
+            <!-- User Column -->
+            <template #cell(user_info)="{ rowData }">
+              <div class="user-cell">
+                <VaAvatar size="small" color="primary" class="mr-2">
+                  <VaIcon name="person" />
+                </VaAvatar>
+                <div class="user-details">
+                  <div class="user-name">{{ rowData.user_name }}</div>
+                  <div class="user-email">{{ rowData.user_email }}</div>
+                  <div class="user-role">{{ rowData.user_role?.display }}</div>
+                </div>
               </div>
-            </div>
-          </template>
+            </template>
 
-          <!-- Status Column -->
-          <template #cell(status)="{ rowData }">
-            <div class="status-badge-wrapper">
-              <div
-                class="status-badge"
-                :style="{
-                  backgroundColor: getBadgeColor(rowData.status),
-                  color: getStatusTextColor(rowData.status),
-                }"
-              >
-                {{ rowData.status_display }}
+            <!-- Status Column -->
+            <template #cell(status)="{ rowData }">
+              <div class="status-badge-wrapper">
+                <div
+                  class="status-badge"
+                  :style="{
+                    backgroundColor: getBadgeColor(rowData.status),
+                    color: getStatusTextColor(rowData.status),
+                  }"
+                >
+                  {{ rowData.status_display }}
+                </div>
               </div>
-            </div>
-          </template>
+            </template>
 
-          <!-- Progress Column -->
-          <template #cell(progress)="{ rowData }">
-            <div class="progress-cell">
-              <VaProgressBar
-                :model-value="rowData.progress"
-                :color="getProgressColor(rowData.progress)"
-                size="small"
-                class="mb-1"
-              />
-              <span class="progress-text">{{ rowData.progress }}%</span>
-            </div>
-          </template>
+            <!-- Progress Column -->
+            <template #cell(progress)="{ rowData }">
+              <div class="progress-cell">
+                <VaProgressBar
+                  :model-value="rowData.progress"
+                  :color="getProgressColor(rowData.progress)"
+                  size="small"
+                  class="mb-1"
+                />
+                <span class="progress-text">{{ rowData.progress }}%</span>
+              </div>
+            </template>
 
-          <!-- Documents Column -->
-          <template #cell(documents)="{ rowData }">
-            <div class="documents-cell">
-              <VaChip size="small" color="info" class="mr-1"> {{ rowData.documents_summary.total }} Total </VaChip>
-              <VaChip size="small" color="success" class="mr-1"> {{ rowData.documents_summary.verified }} ✓ </VaChip>
-              <VaChip size="small" color="warning" class="mr-1"> {{ rowData.documents_summary.pending }} ⏳ </VaChip>
-              <VaChip v-if="rowData.documents_summary.rejected > 0" size="small" color="danger">
-                {{ rowData.documents_summary.rejected }} ✗
-              </VaChip>
-            </div>
-          </template>
+            <!-- Documents Column -->
+            <template #cell(documents)="{ rowData }">
+              <div class="documents-cell">
+                <VaChip size="small" color="info" class="mr-1"> {{ rowData.documents_summary.total }} Total </VaChip>
+                <VaChip size="small" color="success" class="mr-1"> {{ rowData.documents_summary.verified }} ✓ </VaChip>
+                <VaChip size="small" color="warning" class="mr-1"> {{ rowData.documents_summary.pending }} ⏳ </VaChip>
+                <VaChip v-if="rowData.documents_summary.rejected > 0" size="small" color="danger">
+                  {{ rowData.documents_summary.rejected }} ✗
+                </VaChip>
+              </div>
+            </template>
 
-          <!-- Current Step Column -->
-          <template #cell(current_step)="{ rowData }">
-            <div class="current-step-cell">
-              <VaChip :color="getStepColor(rowData.current_step)" size="small" class="step-chip">
-                {{ rowData.current_step_display }}
-              </VaChip>
-            </div>
-          </template>
+            <!-- Current Step Column -->
+            <template #cell(current_step)="{ rowData }">
+              <div class="current-step-cell">
+                <VaChip :color="getStepColor(rowData.current_step)" size="small" class="step-chip">
+                  {{ rowData.current_step_display }}
+                </VaChip>
+              </div>
+            </template>
 
-          <!-- Days Column -->
-          <template #cell(days_since_registration)="{ rowData }">
-            <span class="days-cell">{{ rowData.days_since_registration }} days</span>
-          </template>
+            <!-- Days Column -->
+            <template #cell(days_since_registration)="{ rowData }">
+              <span class="days-cell">{{ rowData.days_since_registration }} days</span>
+            </template>
 
-          <!-- Actions Column -->
-          <template #cell(actions)="{ rowData }">
-            <div class="actions-cell">
-              <VaButton size="small" preset="plain" icon="timeline" color="primary" @click="openStepper(rowData)" />
-              <VaButton size="small" preset="plain" icon="visibility" color="info" @click="openDetails(rowData)" />
-              <VaButton size="small" preset="plain" icon="launch" color="secondary" @click="viewFullDetails(rowData)" />
-            </div>
-          </template>
-        </VaDataTable>
-
+            <!-- Actions Column -->
+            <template #cell(actions)="{ rowData }">
+              <div class="actions-cell">
+                <VaButton
+                  size="small"
+                  preset="plain"
+                  icon="timeline"
+                  color="primary"
+                  :loading="isOpening(rowData.id, 'stepper')"
+                  :disabled="!!openingId"
+                  title="Open verification workflow"
+                  @click="openStepper(rowData)"
+                />
+                <VaButton
+                  size="small"
+                  preset="plain"
+                  icon="visibility"
+                  color="info"
+                  :loading="isOpening(rowData.id, 'details')"
+                  :disabled="!!openingId"
+                  title="Quick preview"
+                  @click="openDetails(rowData)"
+                />
+                <VaButton
+                  size="small"
+                  preset="plain"
+                  icon="launch"
+                  color="secondary"
+                  :loading="isOpening(rowData.id, 'full')"
+                  :disabled="!!openingId"
+                  title="Open full details"
+                  @click="viewFullDetails(rowData)"
+                />
+              </div>
+            </template>
+          </VaDataTable>
+        </VaInnerLoading>
         <!-- Pagination -->
         <div class="pagination-wrapper">
           <VaPagination
@@ -297,10 +319,15 @@ const router = useRouter()
 const verificationStore = useVerificationStore()
 const { init: showToast } = useToast()
 const selectedFilter = ref('all')
-const showStepper = ref(false)
 const showDetails = ref(false)
 const selectedVerification = ref<VerificationUser | null>(null)
 const isLoading = ref(false)
+/** Row action feedback — prevents silent clicks while navigating */
+const openingId = ref<number | null>(null)
+const openingAction = ref<'stepper' | 'details' | 'full' | null>(null)
+
+const isOpening = (id: number, action: 'stepper' | 'details' | 'full') =>
+  openingId.value === id && openingAction.value === action
 
 // Pagination
 const currentPage = ref(1)
@@ -451,42 +478,45 @@ const manualRefresh = async () => {
   })
 }
 
-const openStepper = (verification: any) => {
-  selectedVerification.value = verification
-  showStepper.value = true
+const openStepper = async (verification: VerificationUser) => {
+  // Stepper modal is disabled — open full workflow page with visible loading
+  await viewFullDetails(verification, 'stepper')
 }
 
-const openDetails = (verification: any) => {
+const openDetails = (verification: VerificationUser) => {
+  openingId.value = verification.id
+  openingAction.value = 'details'
   selectedVerification.value = verification
   showDetails.value = true
+  // Brief spinner so the click never feels silent
+  window.setTimeout(() => {
+    if (openingAction.value === 'details') {
+      openingId.value = null
+      openingAction.value = null
+    }
+  }, 250)
 }
 
 const approveVerification = async () => {
   if (!selectedVerification.value) return
 
   try {
-    const response = await verificationStore.approveVerification(selectedVerification.value.id, 'Approved by admin')
-
-    // Show success message
-    if (response?.status === 200 || response?.success) {
-      showToast({
-        message: 'Verification approved successfully!',
-        color: 'success',
-        duration: 3000,
-        position: 'top-right',
-      })
-    }
+    await verificationStore.approveVerification(selectedVerification.value.id, 'Approved by admin')
+    showToast({
+      message: 'Verification approved successfully!',
+      color: 'success',
+      duration: 3000,
+      position: 'top-right',
+    })
 
     showDetails.value = false
 
-    // Update the selected verification status locally for immediate feedback
     if (selectedVerification.value) {
       selectedVerification.value.status = 'verified'
       selectedVerification.value.status_display = 'Verified'
       selectedVerification.value.progress = 100
     }
 
-    // Refresh the data to show updated status
     await refreshData()
   } catch (error) {
     console.error('❌ Failed to approve verification:', error)
@@ -503,28 +533,21 @@ const rejectVerification = async () => {
   if (!selectedVerification.value) return
 
   try {
-    const response = await verificationStore.rejectVerification(selectedVerification.value.id, 'Rejected by admin')
-
-    // Show success message
-    if (response?.status === 200 || response?.success) {
-      showToast({
-        message: 'Verification rejected successfully!',
-        color: 'warning',
-        duration: 3000,
-        position: 'top-right',
-      })
-    }
+    await verificationStore.rejectVerification(selectedVerification.value.id, 'Rejected by admin')
+    showToast({
+      message: 'Verification rejected successfully!',
+      color: 'warning',
+      duration: 3000,
+      position: 'top-right',
+    })
 
     showDetails.value = false
 
-    // Update the selected verification status locally for immediate feedback
     if (selectedVerification.value) {
       selectedVerification.value.status = 'rejected'
       selectedVerification.value.status_display = 'Rejected'
-      selectedVerification.value.progress = 0
     }
 
-    // Refresh the data to show updated status
     await refreshData()
   } catch (error) {
     console.error('❌ Failed to reject verification:', error)
@@ -537,7 +560,7 @@ const rejectVerification = async () => {
   }
 }
 
-const viewFullDetails = (verification?: VerificationUser) => {
+const viewFullDetails = async (verification?: VerificationUser, action: 'stepper' | 'details' | 'full' = 'full') => {
   const targetVerification = verification || selectedVerification.value
   if (!targetVerification) {
     console.error('No verification selected for details view')
@@ -549,8 +572,31 @@ const viewFullDetails = (verification?: VerificationUser) => {
     return
   }
 
+  openingId.value = targetVerification.id
+  openingAction.value = action
   showDetails.value = false
-  router.push({ name: 'verification-details', params: { id: targetVerification.id } })
+
+  showToast({
+    message: 'Opening verification…',
+    color: 'info',
+    duration: 1500,
+    position: 'top-right',
+  })
+
+  try {
+    await router.push({ name: 'verification-details', params: { id: targetVerification.id } })
+  } catch (error) {
+    console.error('Failed to open verification details:', error)
+    showToast({
+      message: 'Could not open verification details.',
+      color: 'danger',
+      duration: 3000,
+      position: 'top-right',
+    })
+  } finally {
+    openingId.value = null
+    openingAction.value = null
+  }
 }
 
 const getProgressColor = (progress: number) => {
