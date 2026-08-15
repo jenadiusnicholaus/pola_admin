@@ -5,7 +5,7 @@
         <h1 class="page-title">Sheria za Nchi — Laws</h1>
         <p class="page-subtitle">PDF statutes · multi-category · EN / SW</p>
       </div>
-      <VaButton preset="secondary" @click="$router.push({ name: 'statutes-categories' })">Manage Categories</VaButton>
+      <VaButton preset="secondary" @click="router.push({ name: 'statutes-categories' })">Manage Categories</VaButton>
     </div>
 
     <VaCard class="my-4">
@@ -129,9 +129,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'vuestic-ui'
 import { statutesService, type Statute, type StatuteCategory } from '../../services/statutesService'
 
+const router = useRouter()
 const { init: notify } = useToast()
 const loading = ref(false)
 const saving = ref(false)

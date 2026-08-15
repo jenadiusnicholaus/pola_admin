@@ -6,7 +6,7 @@
         <p class="page-subtitle">Bilingual categories for Tanzania statutes (EN / SW)</p>
       </div>
       <div class="header-actions">
-        <VaButton preset="secondary" icon="gavel" @click="$router.push({ name: 'statutes-laws' })">
+        <VaButton preset="secondary" icon="gavel" @click="router.push({ name: 'statutes-laws' })">
           Manage Laws
         </VaButton>
         <VaButton icon="add" color="primary" @click="openCreate">New Category</VaButton>
@@ -207,9 +207,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'vuestic-ui'
 import { statutesService, type StatuteCategory } from '../../services/statutesService'
 
+const router = useRouter()
 const { init: notify } = useToast()
 const loading = ref(false)
 const saving = ref(false)
