@@ -88,25 +88,9 @@
         </template>
       </VaDataTable>
       <div class="pager">
-        <VaButton
-          preset="secondary"
-          :disabled="page <= 1"
-          @click="
-            page--
-            loadData()
-          "
-          >Prev</VaButton
-        >
+        <VaButton preset="secondary" :disabled="page <= 1" @click="prevPage">Prev</VaButton>
         <span>Page {{ page }} · {{ totalCount }} total</span>
-        <VaButton
-          preset="secondary"
-          :disabled="!hasNext"
-          @click="
-            page++
-            loadData()
-          "
-          >Next</VaButton
-        >
+        <VaButton preset="secondary" :disabled="!hasNext" @click="nextPage">Next</VaButton>
       </div>
     </VaCard>
 
@@ -197,6 +181,18 @@ const columns = [
 const loadCategories = async () => {
   const data = await statutesService.listCategories({ page_size: 200 })
   allCategories.value = Array.isArray(data) ? data : data.results
+}
+
+const prevPage = () => {
+  if (page.value <= 1) return
+  page.value -= 1
+  loadData()
+}
+
+const nextPage = () => {
+  if (!hasNext.value) return
+  page.value += 1
+  loadData()
 }
 
 const loadData = async () => {

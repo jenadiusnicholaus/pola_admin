@@ -46,10 +46,7 @@
             class="search-input"
             placeholder="Search English or Swahili name..."
             clearable
-            @keyup.enter="
-              page = 1
-              loadData()
-            "
+            @keyup.enter="searchAndReload"
           >
             <template #prependInner>
               <VaIcon name="search" />
@@ -63,10 +60,7 @@
             text-by="text"
             value-by="value"
             clearable
-            @update:modelValue="
-              page = 1
-              loadData()
-            "
+            @update:modelValue="searchAndReload"
           />
           <VaButton icon="refresh" preset="secondary" @click="loadData" />
         </div>
@@ -129,25 +123,9 @@
     </div>
 
     <div v-if="categories.length" class="pager">
-      <VaButton
-        preset="secondary"
-        :disabled="page <= 1"
-        @click="
-          page--
-          loadData()
-        "
-        >Previous</VaButton
-      >
+      <VaButton preset="secondary" :disabled="page <= 1" @click="prevPage">Previous</VaButton>
       <span>Page {{ page }} · {{ totalCount }} total</span>
-      <VaButton
-        preset="secondary"
-        :disabled="!hasNext"
-        @click="
-          page++
-          loadData()
-        "
-        >Next</VaButton
-      >
+      <VaButton preset="secondary" :disabled="!hasNext" @click="nextPage">Next</VaButton>
     </div>
 
     <!-- Create / Edit drawer-style modal -->
@@ -263,6 +241,23 @@ const form = ref({
 })
 
 const activeCount = computed(() => categories.value.filter((c) => c.is_active).length)
+
+const searchAndReload = () => {
+  page.value = 1
+  loadData()
+}
+
+const prevPage = () => {
+  if (page.value <= 1) return
+  page.value -= 1
+  loadData()
+}
+
+const nextPage = () => {
+  if (!hasNext.value) return
+  page.value += 1
+  loadData()
+}
 
 const loadData = async () => {
   loading.value = true
