@@ -584,7 +584,7 @@ const viewFullDetails = async (verification?: VerificationUser, action: 'stepper
   })
 
   try {
-    await router.push(`/admin-verification/verifications/${targetVerification.id}`)
+    await router.push({ name: 'verification-details', params: { id: targetVerification.id } })
   } catch (error) {
     console.error('Failed to open verification details:', error)
     showToast({
