@@ -46,26 +46,36 @@
       </VaCard>
     </div>
 
-    <VaCard class="my-4">
+    <VaCard class="filter-card">
       <VaCardContent>
-        <div class="toolbar">
-          <VaSelect
-            v-model="roleFilter"
-            placeholder="All roles"
-            :options="roleFilterOptions"
-            text-by="label"
-            value-by="value"
-            clearable
-          />
-          <VaSelect
-            v-model="requiredFilter"
-            placeholder="Required status"
-            :options="requiredFilterOptions"
-            text-by="label"
-            value-by="value"
-            clearable
-          />
-          <VaButton preset="secondary" icon="refresh" @click="loadData">Refresh</VaButton>
+        <div class="filter-grid">
+          <div class="filter-field">
+            <label class="filter-label">Role</label>
+            <VaSelect
+              v-model="roleFilter"
+              placeholder="All roles"
+              :options="roleFilterOptions"
+              text-by="label"
+              value-by="value"
+              clearable
+              @update:modelValue="loadData"
+            />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label">Required Status</label>
+            <VaSelect
+              v-model="requiredFilter"
+              placeholder="All statuses"
+              :options="requiredFilterOptions"
+              text-by="label"
+              value-by="value"
+              clearable
+              @update:modelValue="loadData"
+            />
+          </div>
+          <div class="filter-actions">
+            <VaButton preset="secondary" icon="refresh" @click="loadData">Refresh</VaButton>
+          </div>
         </div>
 
         <VaDataTable :items="requirements" :loading="loading" :columns="columns" hoverable striped>
@@ -481,12 +491,28 @@ onMounted(async () => {
 .document-type-select {
   flex: 1;
 }
-.toolbar {
-  display: flex;
+.filter-grid {
+  display: grid;
+  grid-template-columns: 2fr 2fr auto;
   gap: 1rem;
+  align-items: end;
   margin-bottom: 1rem;
-  flex-wrap: wrap;
-  align-items: center;
+}
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--va-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
 }
 
 .table-actions {
