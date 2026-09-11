@@ -363,7 +363,7 @@ const loadData = async (options?: { silent?: boolean }) => {
   } catch (e: any) {
     notify({ message: e?.response?.data?.detail || 'Failed to load statutes', color: 'danger' })
   } finally {
-    loading.value = false
+    if (!options?.silent) loading.value = false
   }
 }
 
@@ -441,7 +441,9 @@ const save = async () => {
       notify({ message: 'Law uploaded', color: 'success' })
     }
     showModal.value = false
-    saving.value = false
+    // Reset to page 1 and clear stale search so the new/edited item is visible
+    page.value = 1
+    searchQuery.value = ''
     await loadData({ silent: true })
   } catch (e: any) {
     const msg = e?.response?.data?.file?.[0] || e?.response?.data?.detail || e?.response?.data?.error || 'Save failed'

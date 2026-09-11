@@ -26,10 +26,12 @@ axios.interceptors.request.use(
 
     // Only show global loading spinner for POST, PUT, PATCH, DELETE (mutation operations)
     // GET requests will use page-level loading spinners
+    // Requests can opt out by setting config.skipGlobalLoading = true
     const method = config.method?.toUpperCase()
     const isMutationRequest = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+    const skipGlobalLoading = (config as any).skipGlobalLoading === true
 
-    if (isMutationRequest) {
+    if (isMutationRequest && !skipGlobalLoading) {
       const store = getGlobalStore()
       if (store) {
         console.log('[Interceptor] Starting global loading for', method, 'request')
@@ -100,8 +102,9 @@ axios.interceptors.request.use(
     // Stop loading spinner on request error (only for mutation requests)
     const method = error.config?.method?.toUpperCase()
     const isMutationRequest = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+    const skipGlobalLoading = (error.config as any)?.skipGlobalLoading === true
 
-    if (isMutationRequest) {
+    if (isMutationRequest && !skipGlobalLoading) {
       const store = getGlobalStore()
       if (store) {
         console.log('[Interceptor] Stopping global loading due to request error')
@@ -121,8 +124,9 @@ axios.interceptors.response.use(
     // Stop loading spinner on success (only for mutation requests)
     const method = response.config?.method?.toUpperCase()
     const isMutationRequest = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+    const skipGlobalLoading = (response.config as any)?.skipGlobalLoading === true
 
-    if (isMutationRequest) {
+    if (isMutationRequest && !skipGlobalLoading) {
       const store = getGlobalStore()
       if (store) {
         console.log('[Interceptor] Stopping global loading for successful', method, 'response')
@@ -138,8 +142,9 @@ axios.interceptors.response.use(
     // Stop loading spinner on error (only for mutation requests)
     const method = error.config?.method?.toUpperCase()
     const isMutationRequest = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+    const skipGlobalLoading = (error.config as any)?.skipGlobalLoading === true
 
-    if (isMutationRequest) {
+    if (isMutationRequest && !skipGlobalLoading) {
       const store = getGlobalStore()
       if (store) {
         console.log('[Interceptor] Stopping global loading due to error response for', method)

@@ -94,14 +94,16 @@ export const statutesService = {
   async createStatute(formData: FormData) {
     const { data } = await axios.post<Statute>(buildUrl('/statutes/laws/'), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    })
+      skipGlobalLoading: true,
+    } as any)
     return data
   },
 
   async updateStatute(id: number, formData: FormData) {
     const { data } = await axios.patch<Statute>(buildUrl(`/statutes/laws/${id}/`), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    })
+      skipGlobalLoading: true,
+    } as any)
     return data
   },
 
