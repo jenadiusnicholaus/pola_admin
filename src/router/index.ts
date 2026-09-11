@@ -97,6 +97,11 @@ const routes: Array<RouteRecordRaw> = [
             path: 'documents',
             component: () => import('../pages/admin/pages/verification/DocumentReview.vue'),
           },
+          {
+            name: 'verification-requirements',
+            path: 'requirements',
+            component: () => import('../pages/admin/pages/verification/VerificationRequirementsPage.vue'),
+          },
         ],
       },
       {

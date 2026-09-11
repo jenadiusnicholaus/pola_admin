@@ -129,6 +129,10 @@ export default {
           name: 'document-review',
           displayName: 'menu.document-review',
         },
+        {
+          name: 'verification-requirements',
+          displayName: 'menu.verification-requirements',
+        },
       ],
     },
     {
