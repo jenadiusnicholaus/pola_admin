@@ -117,14 +117,18 @@
     >
       <div class="modal-form">
         <VaSelect v-model="form.role" label="Role" :options="ROLE_OPTIONS" text-by="label" value-by="value" required />
-        <VaSelect
-          v-model="form.document_type_ref"
-          label="Document Type"
-          :options="documentTypeOptions"
-          text-by="label"
-          value-by="value"
-          required
-        />
+        <div class="document-type-field">
+          <VaSelect
+            v-model="form.document_type_ref"
+            label="Document Type"
+            :options="documentTypeOptions"
+            text-by="label"
+            value-by="value"
+            class="document-type-select"
+            required
+          />
+          <VaButton preset="primary" icon="add" @click="openDocumentTypeModal">New Type</VaButton>
+        </div>
         <VaInput v-model="form.label" label="Label" required />
         <VaSwitch v-model="form.is_required" label="Required" />
         <VaInput v-model.number="form.sort_order" type="number" label="Sort Order" />
@@ -133,6 +137,19 @@
       <template #footer>
         <VaButton color="secondary" @click="showModal = false">Cancel</VaButton>
         <VaButton :loading="saving" @click="save">{{ isEditing ? 'Update' : 'Create' }}</VaButton>
+      </template>
+    </VaModal>
+
+    <!-- Create Document Type Modal -->
+    <VaModal v-model="showDocumentTypeModal" title="New Document Type" size="small" hide-default-actions>
+      <div class="modal-form">
+        <VaInput v-model="newDocumentType.code" label="Code (e.g. practice_license)" required />
+        <VaInput v-model="newDocumentType.label" label="Label (e.g. Practice License)" required />
+        <VaTextarea v-model="newDocumentType.description" label="Description" :min-rows="2" />
+      </div>
+      <template #footer>
+        <VaButton color="secondary" @click="showDocumentTypeModal = false">Cancel</VaButton>
+        <VaButton :loading="saving" @click="createDocumentTypeFromRequirement">Create</VaButton>
       </template>
     </VaModal>
 
@@ -186,8 +203,11 @@ const requiredFilterOptions = [
 
 const showModal = ref(false)
 const showDeleteModal = ref(false)
+const showDocumentTypeModal = ref(false)
 const isEditing = ref(false)
 const deleteTarget = ref<VerificationRequirement | null>(null)
+
+const newDocumentType = ref({ code: '', label: '', description: '' })
 
 const form = ref({
   id: 0,
@@ -325,6 +345,38 @@ const toggleRequired = async (row: VerificationRequirement) => {
   }
 }
 
+const openDocumentTypeModal = () => {
+  newDocumentType.value = { code: '', label: '', description: '' }
+  showDocumentTypeModal.value = true
+}
+
+const createDocumentTypeFromRequirement = async () => {
+  if (!newDocumentType.value.code.trim() || !newDocumentType.value.label.trim()) {
+    notify({ message: 'Code and label are required', color: 'warning' })
+    return
+  }
+
+  saving.value = true
+  try {
+    const created = await documentTypesService.create({
+      code: newDocumentType.value.code.trim(),
+      label: newDocumentType.value.label.trim(),
+      description: newDocumentType.value.description,
+      is_active: true,
+    })
+    notify({ message: 'Document type created', color: 'success' })
+    showDocumentTypeModal.value = false
+    await loadDocumentTypes()
+    form.value.document_type_ref = created.id
+  } catch (error: any) {
+    console.error('Failed to create document type:', error)
+    const msg = error?.response?.data?.detail || error?.response?.data?.code?.[0] || 'Failed to create document type'
+    notify({ message: String(msg), color: 'danger' })
+  } finally {
+    saving.value = false
+  }
+}
+
 const confirmDelete = (row: VerificationRequirement) => {
   deleteTarget.value = row
   showDeleteModal.value = true
@@ -421,6 +473,14 @@ onMounted(async () => {
   color: var(--va-text-secondary);
 }
 
+.document-type-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.document-type-select {
+  flex: 1;
+}
 .toolbar {
   display: flex;
   gap: 1rem;
