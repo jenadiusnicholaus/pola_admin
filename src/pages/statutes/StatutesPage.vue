@@ -442,7 +442,6 @@ const save = async () => {
     }
     showModal.value = false
     await loadData()
-    window.location.reload()
   } catch (e: any) {
     const msg = e?.response?.data?.file?.[0] || e?.response?.data?.detail || e?.response?.data?.error || 'Save failed'
     notify({ message: String(msg), color: 'danger' })
