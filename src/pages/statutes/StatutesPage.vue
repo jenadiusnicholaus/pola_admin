@@ -341,8 +341,8 @@ const nextPage = () => {
   loadData()
 }
 
-const loadData = async () => {
-  loading.value = true
+const loadData = async (options?: { silent?: boolean }) => {
+  if (!options?.silent) loading.value = true
   try {
     const data = await statutesService.listStatutes({
       page: page.value,
@@ -441,7 +441,8 @@ const save = async () => {
       notify({ message: 'Law uploaded', color: 'success' })
     }
     showModal.value = false
-    await loadData()
+    saving.value = false
+    await loadData({ silent: true })
   } catch (e: any) {
     const msg = e?.response?.data?.file?.[0] || e?.response?.data?.detail || e?.response?.data?.error || 'Save failed'
     notify({ message: String(msg), color: 'danger' })
