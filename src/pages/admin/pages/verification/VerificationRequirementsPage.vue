@@ -72,8 +72,8 @@
           <template #cell(role)="{ value }">
             <VaBadge :text="roleLabel(Number(value))" color="primary" />
           </template>
-          <template #cell(document_type)="{ value }">
-            <VaBadge :text="docTypeLabel(value)" color="info" />
+          <template #cell(document_type)="{ rowData }">
+            <VaBadge :text="docTypeLabel(rowData as VerificationRequirement)" color="info" />
           </template>
           <template #cell(is_required)="{ value }">
             <VaBadge :text="value ? 'Required' : 'Optional'" :color="value ? 'danger' : 'secondary'" />
@@ -118,9 +118,9 @@
       <div class="modal-form">
         <VaSelect v-model="form.role" label="Role" :options="ROLE_OPTIONS" text-by="label" value-by="value" required />
         <VaSelect
-          v-model="form.document_type"
+          v-model="form.document_type_ref"
           label="Document Type"
-          :options="DOCUMENT_TYPES"
+          :options="documentTypeOptions"
           text-by="label"
           value-by="value"
           required
@@ -157,16 +157,23 @@ import { useToast } from 'vuestic-ui'
 import {
   verificationRequirementsService,
   type VerificationRequirement,
-  type DocumentType,
-  DOCUMENT_TYPES,
+  DOCUMENT_TYPE_FALLBACKS,
   ROLE_OPTIONS,
 } from '../../../../services/verificationRequirementsService'
+import { documentTypesService, type DocumentType } from '../../../../services/documentTypesService'
 
 const { init: notify } = useToast()
 
 const loading = ref(false)
 const saving = ref(false)
 const requirements = ref<VerificationRequirement[]>([])
+const documentTypes = ref<DocumentType[]>([])
+
+const documentTypeOptions = computed(() =>
+  documentTypes.value.length > 0
+    ? documentTypes.value.map((d) => ({ value: d.id, label: d.label }))
+    : DOCUMENT_TYPE_FALLBACKS,
+)
 
 const roleFilter = ref<number | ''>('')
 const requiredFilter = ref<boolean | ''>('')
@@ -185,7 +192,7 @@ const deleteTarget = ref<VerificationRequirement | null>(null)
 const form = ref({
   id: 0,
   role: 1 as number,
-  document_type: 'other' as DocumentType,
+  document_type_ref: 0 as number,
   label: '',
   is_required: true,
   sort_order: 0,
@@ -211,9 +218,13 @@ const roleLabel = (roleValue: number) => {
   return role ? role.label : `Role ${roleValue}`
 }
 
-const docTypeLabel = (docType: string) => {
-  const doc = DOCUMENT_TYPES.find((d) => d.value === docType)
-  return doc ? doc.label : docType
+const docTypeLabel = (row: VerificationRequirement) => {
+  if (row.document_type_label) return row.document_type_label
+  if (row.document_type_display) return row.document_type_display
+  const doc = documentTypeOptions.value.find((d) => d.value === row.document_type_ref)
+  if (doc) return doc.label
+  const fallback = DOCUMENT_TYPE_FALLBACKS.find((d) => d.value === row.document_type)
+  return fallback ? fallback.label : row.document_type || '—'
 }
 
 const loadData = async () => {
@@ -237,7 +248,7 @@ const resetForm = () => {
   form.value = {
     id: 0,
     role: 1,
-    document_type: 'other',
+    document_type_ref: Number(documentTypeOptions.value[0]?.value ?? 0),
     label: '',
     is_required: true,
     sort_order: 0,
@@ -255,7 +266,7 @@ const openEdit = (row: VerificationRequirement) => {
   form.value = {
     id: row.id,
     role: row.role,
-    document_type: row.document_type,
+    document_type_ref: row.document_type_ref ?? 0,
     label: row.label,
     is_required: row.is_required,
     sort_order: row.sort_order,
@@ -275,7 +286,7 @@ const save = async () => {
   try {
     const payload = {
       role: form.value.role,
-      document_type: form.value.document_type,
+      document_type_ref: form.value.document_type_ref,
       label: form.value.label,
       is_required: form.value.is_required,
       sort_order: form.value.sort_order,
@@ -336,8 +347,17 @@ const softDelete = async () => {
   }
 }
 
-onMounted(() => {
-  loadData()
+const loadDocumentTypes = async () => {
+  try {
+    documentTypes.value = await documentTypesService.list()
+  } catch (error) {
+    console.error('Failed to load document types:', error)
+  }
+}
+
+onMounted(async () => {
+  await loadDocumentTypes()
+  await loadData()
 })
 </script>
 

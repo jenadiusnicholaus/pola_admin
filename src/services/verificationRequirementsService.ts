@@ -7,21 +7,8 @@ import axios from 'axios'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 const buildUrl = (path: string) => `${API_BASE_URL}${path}`
 
-export type DocumentType =
-  | 'roll_number_cert'
-  | 'practice_license'
-  | 'work_certificate'
-  | 'professional_cert'
-  | 'employment_letter'
-  | 'organization_cert'
-  | 'business_license'
-  | 'registration_cert'
-  | 'firm_documents'
-  | 'id_document'
-  | 'academic'
-  | 'other'
-
-export const DOCUMENT_TYPES: { value: DocumentType; label: string }[] = [
+/** Fallback document types used before API data is loaded */
+export const DOCUMENT_TYPE_FALLBACKS: { value: string; label: string }[] = [
   { value: 'roll_number_cert', label: 'Roll Number Certificate' },
   { value: 'practice_license', label: 'Practice License' },
   { value: 'work_certificate', label: 'Work Certificate' },
@@ -49,8 +36,13 @@ export interface VerificationRequirement {
   id: number
   role: number
   role_display?: string
-  document_type: DocumentType
+  /** Legacy field — kept for backward compatibility */
+  document_type?: string
   document_type_display?: string
+  /** New FK-based fields */
+  document_type_ref?: number
+  document_type_code?: string
+  document_type_label?: string
   label: string
   is_required: boolean
   sort_order: number
@@ -99,7 +91,7 @@ export const verificationRequirementsService = {
 
   async create(payload: {
     role: number
-    document_type: DocumentType
+    document_type_ref: number
     label: string
     is_required: boolean
     sort_order: number

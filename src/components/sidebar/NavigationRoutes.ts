@@ -133,6 +133,10 @@ export default {
           name: 'verification-requirements',
           displayName: 'menu.verification-requirements',
         },
+        {
+          name: 'document-types',
+          displayName: 'menu.document-types',
+        },
       ],
     },
     {
