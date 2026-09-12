@@ -1,71 +1,53 @@
 <template>
-  <div class="verification-requirements-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Verification Requirements</h1>
-        <p class="page-subtitle">Manage document requirements per user role for the verification flow</p>
-      </div>
-      <div class="header-actions">
-        <VaButton icon="add" color="primary" @click="openCreate">New Requirement</VaButton>
-      </div>
-    </div>
-
-    <div class="stats-row">
-      <VaCard class="stat-chip">
+  <div class="flex flex-col gap-4">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="rule" color="primary" />
-            <div>
-              <div class="stat-value">{{ totalCount }}</div>
-              <div class="stat-label">Total Requirements</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Total Requirements</span>
+            <span class="text-2xl font-bold">{{ totalCount }}</span>
           </div>
         </VaCardContent>
       </VaCard>
-      <VaCard class="stat-chip">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="mandatory" color="danger" />
-            <div>
-              <div class="stat-value">{{ requiredCount }}</div>
-              <div class="stat-label">Required</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Required</span>
+            <span class="text-2xl font-bold text-danger">{{ requiredCount }}</span>
           </div>
         </VaCardContent>
       </VaCard>
-      <VaCard class="stat-chip">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="group" color="success" />
-            <div>
-              <div class="stat-value">{{ rolesCovered }}</div>
-              <div class="stat-label">Roles Covered</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Roles Covered</span>
+            <span class="text-2xl font-bold text-success">{{ rolesCovered }}</span>
           </div>
         </VaCardContent>
       </VaCard>
     </div>
 
-    <VaCard class="filter-card">
+    <!-- Main Table Card -->
+    <VaCard>
+      <VaCardTitle>
+        <h1 class="card-title">Verification Requirements</h1>
+      </VaCardTitle>
       <VaCardContent>
-        <div class="filter-grid">
-          <div class="filter-field">
-            <label class="filter-label">Role</label>
+        <div class="flex flex-col gap-4 mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <VaSelect
               v-model="roleFilter"
-              placeholder="All roles"
+              placeholder="Filter by role"
               :options="roleFilterOptions"
               text-by="label"
               value-by="value"
               clearable
               @update:modelValue="loadData"
             />
-          </div>
-          <div class="filter-field">
-            <label class="filter-label">Required Status</label>
             <VaSelect
               v-model="requiredFilter"
-              placeholder="All statuses"
+              placeholder="Filter by status"
               :options="requiredFilterOptions"
               text-by="label"
               value-by="value"
@@ -73,8 +55,9 @@
               @update:modelValue="loadData"
             />
           </div>
-          <div class="filter-actions">
+          <div class="flex justify-between items-center">
             <VaButton preset="secondary" icon="refresh" @click="loadData">Refresh</VaButton>
+            <VaButton icon="add" color="primary" @click="openCreate">New Requirement</VaButton>
           </div>
         </div>
 
@@ -90,6 +73,20 @@
           </template>
           <template #cell(sort_order)="{ value }">
             <span class="sort-badge">{{ value }}</span>
+          </template>
+          <template #cell(description)="{ rowData }">
+            <div class="description-cell">
+              <span class="description-text">{{
+                trimDescription((rowData as VerificationRequirement).description)
+              }}</span>
+              <VaButton
+                v-if="(rowData as VerificationRequirement).description"
+                size="small"
+                preset="primary"
+                icon="visibility"
+                @click="openDetail(rowData as VerificationRequirement)"
+              />
+            </div>
           </template>
           <template #cell(actions)="{ rowData }">
             <div class="table-actions">
@@ -163,6 +160,42 @@
       </template>
     </VaModal>
 
+    <!-- Detail Modal -->
+    <VaModal v-model="showDetailModal" title="Requirement Details" size="medium" hide-default-actions>
+      <div v-if="selectedDetail" class="detail-content">
+        <div class="detail-row">
+          <span class="detail-label">Role</span>
+          <VaBadge :text="roleLabel(selectedDetail.role)" color="primary" />
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Document Type</span>
+          <VaBadge :text="docTypeLabel(selectedDetail)" color="info" />
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Label</span>
+          <span>{{ selectedDetail.label }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <VaBadge
+            :text="selectedDetail.is_required ? 'Required' : 'Optional'"
+            :color="selectedDetail.is_required ? 'danger' : 'secondary'"
+          />
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Sort Order</span>
+          <span>{{ selectedDetail.sort_order }}</span>
+        </div>
+        <div class="detail-row detail-row-block">
+          <span class="detail-label">Description</span>
+          <p class="detail-description">{{ selectedDetail.description || '—' }}</p>
+        </div>
+      </div>
+      <template #footer>
+        <VaButton color="secondary" @click="showDetailModal = false">Close</VaButton>
+      </template>
+    </VaModal>
+
     <!-- Delete Confirmation Modal -->
     <VaModal v-model="showDeleteModal" title="Delete Requirement" hide-default-actions>
       <p>
@@ -214,8 +247,10 @@ const requiredFilterOptions = [
 const showModal = ref(false)
 const showDeleteModal = ref(false)
 const showDocumentTypeModal = ref(false)
+const showDetailModal = ref(false)
 const isEditing = ref(false)
 const deleteTarget = ref<VerificationRequirement | null>(null)
+const selectedDetail = ref<VerificationRequirement | null>(null)
 
 const newDocumentType = ref({ code: '', label: '', description: '' })
 
@@ -387,6 +422,16 @@ const createDocumentTypeFromRequirement = async () => {
   }
 }
 
+const trimDescription = (text: string, max = 60) => {
+  if (!text) return '—'
+  return text.length > max ? `${text.slice(0, max)}...` : text
+}
+
+const openDetail = (row: VerificationRequirement) => {
+  selectedDetail.value = row
+  showDetailModal.value = true
+}
+
 const confirmDelete = (row: VerificationRequirement) => {
   deleteTarget.value = row
   showDeleteModal.value = true
@@ -424,65 +469,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.verification-requirements-page {
-  padding: 1.5rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 0.25rem 0;
-}
-
-.page-subtitle {
-  color: var(--va-text-secondary);
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.stats-row {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.stat-chip {
-  flex: 1;
-  min-width: 180px;
-}
-
-.stat-chip-inner {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.stat-label {
-  font-size: 0.8rem;
-  color: var(--va-text-secondary);
-}
-
 .document-type-field {
   display: flex;
   align-items: flex-start;
@@ -491,34 +477,51 @@ onMounted(async () => {
 .document-type-select {
   flex: 1;
 }
-.filter-grid {
-  display: grid;
-  grid-template-columns: 2fr 2fr auto;
-  gap: 1rem;
-  align-items: end;
-  margin-bottom: 1rem;
-}
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-.filter-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--va-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.filter-actions {
-  display: flex;
-  align-items: flex-end;
-}
 
 .table-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.description-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 300px;
+}
+.description-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.detail-row-block {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--va-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 110px;
+}
+.detail-description {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .sort-badge {
@@ -538,19 +541,5 @@ onMounted(async () => {
   flex-direction: column;
   gap: 1rem;
   padding: 0.5rem 0;
-}
-
-@media (max-width: 768px) {
-  .verification-requirements-page {
-    padding: 1rem;
-  }
-
-  .stats-row {
-    flex-direction: column;
-  }
-
-  .stat-chip {
-    min-width: 100%;
-  }
 }
 </style>

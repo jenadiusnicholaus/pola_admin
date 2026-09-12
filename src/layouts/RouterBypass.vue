@@ -1,7 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto">
-    <RouterView :key="route.fullPath" />
-  </div>
+  <RouterView :key="route.fullPath" />
 </template>
 
 <script setup lang="ts">

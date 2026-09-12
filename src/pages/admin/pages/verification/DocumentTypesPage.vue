@@ -1,60 +1,51 @@
 <template>
-  <div class="document-types-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Document Types</h1>
-        <p class="page-subtitle">Manage dynamic document types used by verification requirements</p>
-      </div>
-      <div class="header-actions">
-        <VaButton icon="add" color="primary" @click="openCreate">New Document Type</VaButton>
-      </div>
-    </div>
-
-    <div class="stats-row">
-      <VaCard class="stat-chip">
+  <div class="flex flex-col gap-4">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="description" color="primary" />
-            <div>
-              <div class="stat-value">{{ totalCount }}</div>
-              <div class="stat-label">Total Types</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Total Types</span>
+            <span class="text-2xl font-bold">{{ totalCount }}</span>
           </div>
         </VaCardContent>
       </VaCard>
-      <VaCard class="stat-chip">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="check_circle" color="success" />
-            <div>
-              <div class="stat-value">{{ activeCount }}</div>
-              <div class="stat-label">Active</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Active</span>
+            <span class="text-2xl font-bold text-success">{{ activeCount }}</span>
           </div>
         </VaCardContent>
       </VaCard>
-      <VaCard class="stat-chip">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="block" color="danger" />
-            <div>
-              <div class="stat-value">{{ inactiveCount }}</div>
-              <div class="stat-label">Inactive</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Inactive</span>
+            <span class="text-2xl font-bold text-danger">{{ inactiveCount }}</span>
           </div>
         </VaCardContent>
       </VaCard>
     </div>
 
-    <VaCard class="filter-card">
+    <!-- Main Table Card -->
+    <VaCard>
+      <VaCardTitle>
+        <h1 class="card-title">Document Types</h1>
+      </VaCardTitle>
       <VaCardContent>
-        <div class="toolbar">
-          <VaInput v-model="searchQuery" placeholder="Search by code or label..." clearable @keyup.enter="loadData">
-            <template #prependInner>
-              <VaIcon name="search" />
-            </template>
-          </VaInput>
-          <VaButton preset="secondary" icon="refresh" @click="loadData">Refresh</VaButton>
+        <div class="flex flex-col gap-4 mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <VaInput v-model="searchQuery" placeholder="Search by code or label..." clearable @keyup.enter="loadData">
+              <template #prependInner>
+                <VaIcon name="search" />
+              </template>
+            </VaInput>
+          </div>
+          <div class="flex justify-between items-center">
+            <VaButton preset="secondary" icon="refresh" @click="loadData">Refresh</VaButton>
+            <VaButton icon="add" color="primary" @click="openCreate">New Document Type</VaButton>
+          </div>
         </div>
 
         <VaDataTable :items="filteredTypes" :loading="loading" :columns="columns" hoverable striped>
@@ -63,6 +54,18 @@
           </template>
           <template #cell(is_active)="{ value }">
             <VaBadge :text="value ? 'Active' : 'Inactive'" :color="value ? 'success' : 'danger'" />
+          </template>
+          <template #cell(description)="{ rowData }">
+            <div class="description-cell">
+              <span class="description-text">{{ trimDescription((rowData as DocumentType).description) }}</span>
+              <VaButton
+                v-if="(rowData as DocumentType).description"
+                size="small"
+                preset="primary"
+                icon="visibility"
+                @click="openDetail(rowData as DocumentType)"
+              />
+            </div>
           </template>
           <template #cell(actions)="{ rowData }">
             <div class="table-actions">
@@ -110,6 +113,34 @@
       </template>
     </VaModal>
 
+    <!-- Detail Modal -->
+    <VaModal v-model="showDetailModal" title="Document Type Details" size="medium" hide-default-actions>
+      <div v-if="selectedDetail" class="detail-content">
+        <div class="detail-row">
+          <span class="detail-label">Code</span>
+          <code class="code-badge">{{ selectedDetail.code }}</code>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Label</span>
+          <span>{{ selectedDetail.label }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <VaBadge
+            :text="selectedDetail.is_active ? 'Active' : 'Inactive'"
+            :color="selectedDetail.is_active ? 'success' : 'danger'"
+          />
+        </div>
+        <div class="detail-row detail-row-block">
+          <span class="detail-label">Description</span>
+          <p class="detail-description">{{ selectedDetail.description || '—' }}</p>
+        </div>
+      </div>
+      <template #footer>
+        <VaButton color="secondary" @click="showDetailModal = false">Close</VaButton>
+      </template>
+    </VaModal>
+
     <!-- Delete Confirmation Modal -->
     <VaModal v-model="showDeleteModal" title="Delete Document Type" hide-default-actions>
       <p>
@@ -139,8 +170,10 @@ const searchQuery = ref('')
 
 const showModal = ref(false)
 const showDeleteModal = ref(false)
+const showDetailModal = ref(false)
 const isEditing = ref(false)
 const deleteTarget = ref<DocumentType | null>(null)
+const selectedDetail = ref<DocumentType | null>(null)
 
 const form = ref({
   id: 0,
@@ -247,6 +280,16 @@ const toggleActive = async (row: DocumentType) => {
   }
 }
 
+const trimDescription = (text: string, max = 60) => {
+  if (!text) return '—'
+  return text.length > max ? `${text.slice(0, max)}...` : text
+}
+
+const openDetail = (row: DocumentType) => {
+  selectedDetail.value = row
+  showDetailModal.value = true
+}
+
 const confirmDelete = (row: DocumentType) => {
   deleteTarget.value = row
   showDeleteModal.value = true
@@ -275,81 +318,50 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.document-types-page {
-  padding: 1.5rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 0.25rem 0;
-}
-
-.page-subtitle {
-  color: var(--va-text-secondary);
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.stats-row {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.stat-chip {
-  flex: 1;
-  min-width: 180px;
-}
-
-.stat-chip-inner {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.stat-label {
-  font-size: 0.8rem;
-  color: var(--va-text-secondary);
-}
-
-.filter-card {
-  margin-bottom: 1.5rem;
-}
-
-.toolbar {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
 .table-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.description-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 300px;
+}
+.description-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.detail-row-block {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--va-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 110px;
+}
+.detail-description {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .code-badge {
@@ -366,19 +378,5 @@ onMounted(() => {
   flex-direction: column;
   gap: 1rem;
   padding: 0.5rem 0;
-}
-
-@media (max-width: 768px) {
-  .document-types-page {
-    padding: 1rem;
-  }
-
-  .stats-row {
-    flex-direction: column;
-  }
-
-  .stat-chip {
-    min-width: 100%;
-  }
 }
 </style>

@@ -14,6 +14,19 @@ const showRejectModal = ref(false)
 const selectedMaterialId = ref<number | null>(null)
 const rejectNote = ref('')
 
+const showDetailModal = ref(false)
+const selectedDetail = ref<any>(null)
+
+const trimText = (text: string | null | undefined, max = 60) => {
+  if (!text) return '—'
+  return text.length > max ? text.slice(0, max).trimEnd() + '…' : text
+}
+
+const openDetail = (row: any) => {
+  selectedDetail.value = row
+  showDetailModal.value = true
+}
+
 onMounted(() => {
   fetchMaterials()
 })
@@ -106,68 +119,65 @@ const getUploaderName = (uploader: any) => {
 </script>
 
 <template>
-  <div class="materials-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Learning Materials</h1>
-        <p class="page-subtitle">Review and approve learning materials</p>
-      </div>
-    </div>
-
+  <div class="flex flex-col gap-4">
+    <!-- Main Table Card -->
     <VaCard>
+      <VaCardTitle>
+        <h1 class="card-title">Learning Materials</h1>
+      </VaCardTitle>
       <VaCardContent>
-        <div class="filters">
-          <VaInput v-model="filters.email" placeholder="Search by uploader email" clearable>
-            <template #prependInner>
-              <VaIcon name="search" />
-            </template>
-          </VaInput>
+        <div class="flex flex-col gap-4 mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <VaInput v-model="filters.email" placeholder="Search by uploader email" clearable>
+              <template #prependInner>
+                <VaIcon name="search" />
+              </template>
+            </VaInput>
 
-          <VaSelect
-            v-model="filters.status"
-            placeholder="All Statuses"
-            :options="[
-              { text: 'All Statuses', value: '' },
-              { text: 'Pending', value: 'pending' },
-              { text: 'Approved', value: 'approved' },
-              { text: 'Rejected', value: 'rejected' },
-            ]"
-            text-by="text"
-            value-by="value"
-            clearable
-          />
+            <VaSelect
+              v-model="filters.status"
+              placeholder="All Statuses"
+              :options="[
+                { text: 'All Statuses', value: '' },
+                { text: 'Pending', value: 'pending' },
+                { text: 'Approved', value: 'approved' },
+                { text: 'Rejected', value: 'rejected' },
+              ]"
+              text-by="text"
+              value-by="value"
+              clearable
+            />
 
-          <VaSelect
-            v-model="filters.category"
-            placeholder="All Categories"
-            :options="[
-              { text: 'All Categories', value: '' },
-              { text: 'Notes', value: 'notes' },
-              { text: 'Past Papers', value: 'past_papers' },
-              { text: 'Document', value: 'document' },
-              { text: 'Tutorial', value: 'tutorial' },
-            ]"
-            text-by="text"
-            value-by="value"
-            clearable
-          />
-
-          <VaButton @click="handleSearch">Search</VaButton>
-          <VaButton preset="secondary" @click="handleClear">Clear</VaButton>
+            <VaSelect
+              v-model="filters.category"
+              placeholder="All Categories"
+              :options="[
+                { text: 'All Categories', value: '' },
+                { text: 'Notes', value: 'notes' },
+                { text: 'Past Papers', value: 'past_papers' },
+                { text: 'Document', value: 'document' },
+                { text: 'Tutorial', value: 'tutorial' },
+              ]"
+              text-by="text"
+              value-by="value"
+              clearable
+            />
+          </div>
+          <div class="flex justify-between items-center">
+            <VaButton preset="secondary" @click="handleClear">Clear</VaButton>
+            <VaButton icon="search" @click="handleSearch">Search</VaButton>
+          </div>
         </div>
-      </VaCardContent>
-    </VaCard>
 
-    <VaCard>
-      <VaCardContent>
         <VaDataTable :items="materials" :columns="columns" :loading="isLoading" striped hoverable>
           <template #cell(title)="{ rowData }">
             <div class="title-cell">
               <VaIcon name="description" size="small" />
               <div>
-                <div class="title-text">{{ rowData.title }}</div>
-                <div class="description-text">{{ rowData.description }}</div>
+                <div class="title-text">{{ trimText(rowData.title, 45) }}</div>
+                <div class="description-text">{{ trimText(rowData.description, 60) }}</div>
               </div>
+              <VaButton preset="plain" icon="visibility" size="small" color="secondary" @click="openDetail(rowData)" />
             </div>
           </template>
 
@@ -249,6 +259,64 @@ const getUploaderName = (uploader: any) => {
       </VaCardContent>
     </VaCard>
 
+    <!-- Detail Modal -->
+    <VaModal v-model="showDetailModal" title="Material Details" size="small" hide-default-actions>
+      <div v-if="selectedDetail" class="detail-content">
+        <div class="detail-row-block">
+          <span class="detail-label">Title</span>
+          <p class="detail-description">{{ selectedDetail.title }}</p>
+        </div>
+        <div class="detail-row-block">
+          <span class="detail-label">Description</span>
+          <p class="detail-description">{{ selectedDetail.description || '—' }}</p>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Category</span>
+          <span>{{
+            selectedDetail.category_display || selectedDetail.content_type_display || selectedDetail.content_type || '—'
+          }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Uploader</span>
+          <span>{{ selectedDetail.uploader ? getUploaderName(selectedDetail.uploader) : '—' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Uploader Email</span>
+          <span>{{ selectedDetail.uploader?.email || '—' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Uploader Type</span>
+          <span>{{ selectedDetail.uploader_type_display || '—' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Size</span>
+          <span>{{ selectedDetail.file_size_mb }} MB</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Price</span>
+          <span>{{ formatPrice(selectedDetail.price) }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Downloads</span>
+          <span>{{ selectedDetail.downloads_count }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <VaBadge
+            :text="getStatusText(selectedDetail.is_approved)"
+            :color="getStatusColor(selectedDetail.is_approved)"
+          />
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Uploaded</span>
+          <span>{{ formatDate(selectedDetail.created_at) }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <VaButton preset="secondary" @click="showDetailModal = false">Close</VaButton>
+      </template>
+    </VaModal>
+
     <VaModal v-model="showRejectModal" title="Reject Material" size="small">
       <div class="modal-form">
         <VaTextarea
@@ -269,44 +337,45 @@ const getUploaderName = (uploader: any) => {
 </template>
 
 <style scoped>
-.materials-page {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
-  color: #1a1a1a;
-}
-
-.page-subtitle {
-  font-size: 1rem;
-  color: #6b7280;
-  margin: 0.5rem 0 0 0;
-}
-
-.filters {
-  display: grid;
-  grid-template-columns: 1fr 200px 200px auto auto;
-  gap: 1rem;
-  align-items: end;
-}
-
 .title-cell,
 .user-cell {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.detail-row-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--va-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-description {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .title-text {
@@ -345,20 +414,6 @@ const getUploaderName = (uploader: any) => {
 }
 
 @media (max-width: 768px) {
-  .materials-page {
-    padding: 1rem;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .filters {
-    grid-template-columns: 1fr;
-  }
-
   .actions-cell {
     flex-direction: column;
   }

@@ -1,59 +1,41 @@
 <template>
-  <div class="statutes-laws-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Sheria za Nchi — Laws</h1>
-        <p class="page-subtitle">PDF statutes · multi-category · EN / SW</p>
-      </div>
-      <div class="header-actions">
-        <VaButton preset="secondary" icon="category" @click="router.push({ name: 'statutes-categories' })"
-          >Manage Categories</VaButton
-        >
-        <VaButton icon="add" color="primary" @click="openCreate">Upload Law PDF</VaButton>
-      </div>
-    </div>
-
-    <div class="stats-row">
-      <VaCard class="stat-chip">
+  <div class="flex flex-col gap-4">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="gavel" color="primary" />
-            <div>
-              <div class="stat-value">{{ totalCount }}</div>
-              <div class="stat-label">Total Laws</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Total Laws</span>
+            <span class="text-2xl font-bold">{{ totalCount }}</span>
           </div>
         </VaCardContent>
       </VaCard>
-      <VaCard class="stat-chip">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="category" color="info" />
-            <div>
-              <div class="stat-value">{{ allCategories.length }}</div>
-              <div class="stat-label">Categories</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Categories</span>
+            <span class="text-2xl font-bold text-info">{{ allCategories.length }}</span>
           </div>
         </VaCardContent>
       </VaCard>
-      <VaCard class="stat-chip">
+      <VaCard>
         <VaCardContent>
-          <div class="stat-chip-inner">
-            <VaIcon name="check_circle" color="success" />
-            <div>
-              <div class="stat-value">{{ activeCount }}</div>
-              <div class="stat-label">Active</div>
-            </div>
+          <div class="flex flex-col">
+            <span class="text-secondary text-sm">Active</span>
+            <span class="text-2xl font-bold text-success">{{ activeCount }}</span>
           </div>
         </VaCardContent>
       </VaCard>
     </div>
 
-    <VaCard class="filter-card">
+    <!-- Main Table Card -->
+    <VaCard>
+      <VaCardTitle>
+        <h1 class="card-title">Sheria za Nchi — Laws</h1>
+      </VaCardTitle>
       <VaCardContent>
-        <div class="filter-grid">
-          <div class="filter-field filter-search">
-            <label class="filter-label">Search</label>
+        <div class="flex flex-col gap-4 mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <VaInput
               v-model="searchQuery"
               placeholder="Search by title..."
@@ -65,9 +47,6 @@
                 <VaIcon name="search" />
               </template>
             </VaInput>
-          </div>
-          <div class="filter-field">
-            <label class="filter-label">Category</label>
             <VaSelect
               v-model="categoryFilter"
               placeholder="All categories"
@@ -77,9 +56,6 @@
               clearable
               @update:modelValue="onFilterChange"
             />
-          </div>
-          <div class="filter-field">
-            <label class="filter-label">Status</label>
             <VaSelect
               v-model="statusFilter"
               placeholder="All statuses"
@@ -90,8 +66,14 @@
               @update:modelValue="onFilterChange"
             />
           </div>
-          <div class="filter-actions">
+          <div class="flex justify-between items-center">
             <VaButton icon="refresh" preset="secondary" @click="loadData">Refresh</VaButton>
+            <div class="flex gap-2">
+              <VaButton preset="secondary" icon="category" @click="router.push({ name: 'statutes-categories' })"
+                >Manage Categories</VaButton
+              >
+              <VaButton icon="add" color="primary" @click="openCreate">Upload Law PDF</VaButton>
+            </div>
           </div>
         </div>
       </VaCardContent>
@@ -480,80 +462,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.statutes-laws-page {
-  padding: 1.5rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-.page-title {
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 700;
-}
-.page-subtitle {
-  margin: 0.25rem 0 0;
-  opacity: 0.7;
-}
-.header-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-.stats-row {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-.stat-chip {
-  flex: 1;
-  min-width: 160px;
-}
-.stat-chip-inner {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-.stat-label {
-  font-size: 0.8rem;
-  color: var(--va-text-secondary);
-}
-.filter-card {
-  margin-bottom: 1.5rem;
-}
-.filter-grid {
-  display: grid;
-  grid-template-columns: 2fr 1.5fr 1fr auto;
-  gap: 1rem;
-  align-items: end;
-}
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-.filter-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--va-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.filter-actions {
-  display: flex;
-  align-items: flex-end;
-}
 .loading-container,
 .empty-state {
   display: flex;
@@ -653,25 +561,14 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
-  .filter-grid {
-    grid-template-columns: 1fr 1fr;
-  }
   .bilingual-grid {
     grid-template-columns: 1fr;
   }
   .settings-row {
     grid-template-columns: 1fr;
   }
-}
-@media (max-width: 600px) {
-  .filter-grid {
-    grid-template-columns: 1fr;
-  }
-  .stats-row {
-    flex-direction: column;
-  }
-  .stat-chip {
-    min-width: 100%;
+  .toggle-wrapper {
+    padding-top: 0;
   }
 }
 </style>
